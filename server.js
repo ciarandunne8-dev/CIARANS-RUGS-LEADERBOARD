@@ -5,6 +5,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const cron = require("node-cron");
 const fs = require("fs-extra");
+const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
@@ -15,108 +16,102 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static("public"));
 
-const DATA_FILE = "wagers.json";
-const HISTORY_FILE = "history.json";
+const DATA_DIR = path.join(__dirname, "data");
+const WAGERS_FILE = path.join(DATA_DIR, "wagers.json");
+const HISTORY_FILE = path.join(DATA_DIR, "history.json");
 
 let wagers = [];
 let history = [];
 
-/*
-Load saved data when server starts
-*/
-if (fs.existsSync(DATA_FILE)) {
-  wagers = fs.readJsonSync(DATA_FILE);
+fs.ensureDirSync(DATA_DIR);
+
+if (fs.existsSync(WAGERS_FILE)) {
+  wagers = fs.readJsonSync(WAGERS_FILE);
 }
 
 if (fs.existsSync(HISTORY_FILE)) {
   history = fs.readJsonSync(HISTORY_FILE);
 }
 
-/*
-Save wagers to disk
-*/
 function saveWagers() {
-  fs.writeJsonSync(DATA_FILE, wagers);
+  fs.writeJsonSync(WAGERS_FILE, wagers, { spaces: 2 });
 }
 
-/*
-Save history
-*/
 function saveHistory() {
-  fs.writeJsonSync(HISTORY_FILE, history);
+  fs.writeJsonSync(HISTORY_FILE, history, { spaces: 2 });
 }
 
-/*
-Return leaderboard
-*/
+function getLeaderboardTotals() {
+  const totals = {};
+
+  wagers.forEach((w) => {
+    if (!totals[w.user]) {
+      totals[w.user] = {
+        user: w.user,
+        username: w.username || null,
+        amount: 0
+      };
+    }
+
+    totals[w.user].amount += Number(w.amount || 0);
+
+    if (w.username) {
+      totals[w.user].username = w.username;
+    }
+  });
+
+  return Object.values(totals).sort((a, b) => b.amount - a.amount);
+}
+
 app.get("/api/wagers", (req, res) => {
   res.json(wagers);
 });
 
-/*
-Return past winners
-*/
 app.get("/api/history", (req, res) => {
   res.json(history);
 });
 
-/*
-Webhook endpoint
-*/
 app.post("/webhook", (req, res) => {
+  const events = Array.isArray(req.body) ? req.body : [req.body];
 
-  const events = req.body;
+  events.forEach((ev) => {
+    const wallet = ev.feePayer || ev.wallet || null;
+    const amount = ev.nativeTransfers?.[0]?.amount
+      ? ev.nativeTransfers[0].amount / 1e9
+      : 0;
 
-  events.forEach(ev => {
+    const referral = ev.memo || ev.description || "";
 
-    const wallet = ev.feePayer;
-    const amount = ev.nativeTransfers?.[0]?.amount / 1e9;
-    const referral = ev.memo;
-
-    if (wallet && amount && referral === "rugsmademebroke") {
-
+    if (wallet && amount && String(referral).includes("rugsmademebroke")) {
       wagers.push({
         user: wallet,
-        amount: amount
+        username: ev.username || null,
+        amount: amount,
+        createdAt: new Date().toISOString()
       });
-
-      saveWagers();
-
-      console.log("New wager:", wallet, amount);
-
     }
-
   });
 
+  saveWagers();
   io.emit("update");
 
   res.sendStatus(200);
 });
 
 /*
-Weekly reset
-Saturday 00:05
+  Weekly reset:
+  Saturday at 12:05 AM
+  Cron format: minute hour day month weekday
+  Saturday = 6
 */
 cron.schedule("5 0 * * 6", () => {
+  console.log("Running weekly leaderboard reset...");
 
-  console.log("Weekly reset");
-
-  const totals = {};
-
-  wagers.forEach(w => {
-    if (!totals[w.user]) totals[w.user] = 0;
-    totals[w.user] += w.amount;
-  });
-
-  const sorted = Object.entries(totals)
-    .map(([user, amount]) => ({ user, amount }))
-    .sort((a, b) => b.amount - a.amount);
-
-  const winners = sorted.slice(0, 3);
+  const winners = getLeaderboardTotals().slice(0, 3);
 
   history.push({
-    date: new Date(),
-    winners
+    date: new Date().toISOString(),
+    winners: winners
   });
 
   saveHistory();
@@ -125,19 +120,12 @@ cron.schedule("5 0 * * 6", () => {
   saveWagers();
 
   io.emit("update");
-
 });
 
-/*
-Socket connection
-*/
 io.on("connection", () => {
   console.log("User connected");
 });
 
-/*
-Start server
-*/
 server.listen(PORT, () => {
-  console.log("Server running on port " + PORT);
+  console.log(`Server running on port ${PORT}`);
 });

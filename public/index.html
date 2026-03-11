@@ -23,10 +23,11 @@
       color: #ffd700;
       text-shadow: 2px 2px #000;
       text-align: center;
+      line-height: 1.4;
     }
 
     .panel {
-      width: min(900px, 95vw);
+      width: min(950px, 95vw);
       background: #2a2a2a;
       border: 4px solid #555;
       margin-bottom: 24px;
@@ -63,15 +64,15 @@
     .stat-value {
       font-size: 11px;
       color: #ffd700;
-      line-height: 1.5;
+      line-height: 1.6;
     }
 
     .podium {
       display: flex;
       justify-content: center;
-      align-items: flex-end;
       gap: 40px;
-      margin-bottom: 36px;
+      margin-bottom: 40px;
+      align-items: flex-end;
       flex-wrap: wrap;
     }
 
@@ -100,17 +101,13 @@
       font-size: 42px;
       margin-bottom: 8px;
       line-height: 1;
-      animation: bounce 3s ease-in-out infinite;
       display: inline-block;
+      animation: bounce 3s ease-in-out infinite;
     }
 
     @keyframes bounce {
-      0%, 100% {
-        transform: translateY(0);
-      }
-      50% {
-        transform: translateY(-10px);
-      }
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
     }
 
     .gold-glow {
@@ -143,7 +140,7 @@
 
     table {
       border-collapse: collapse;
-      width: min(900px, 95vw);
+      width: min(950px, 95vw);
       background: #2a2a2a;
       border: 4px solid #555;
       margin-bottom: 24px;
@@ -183,41 +180,57 @@
       background: #444;
     }
 
-    .two-column {
-      width: min(900px, 95vw);
+    .bottom-grid {
+      width: min(950px, 95vw);
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 24px;
     }
 
-    .feed-list,
-    .history-list {
+    .list {
       list-style: none;
       padding: 0;
       margin: 0;
     }
 
-    .feed-item,
-    .history-item {
+    .list-item {
       background: #1c1c1c;
       border: 2px solid #555;
       padding: 12px;
       margin-bottom: 10px;
       font-size: 9px;
-      line-height: 1.6;
-    }
-
-    .winner-line {
-      margin-top: 8px;
+      line-height: 1.7;
     }
 
     .muted {
       color: #bdbdbd;
     }
 
-    @media (max-width: 800px) {
+    .history-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .history-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      border: 2px solid #555;
+      background: #1c1c1c;
+      color: #ffd700;
+      padding: 10px 12px;
+      cursor: pointer;
+    }
+
+    .history-btn.active {
+      background: #333;
+    }
+
+    @media (max-width: 850px) {
       .competition-grid,
-      .two-column {
+      .bottom-grid {
         grid-template-columns: 1fr;
       }
 
@@ -288,32 +301,36 @@
     <tbody id="leaderboard"></tbody>
   </table>
 
-  <div class="two-column">
+  <div class="bottom-grid">
     <div class="panel">
       <div class="panel-title">Live Wager Feed</div>
-      <ul id="live-feed" class="feed-list"></ul>
+      <ul id="live-feed" class="list"></ul>
     </div>
 
     <div class="panel">
       <div class="panel-title">Past Winners</div>
-      <ul id="past-winners" class="history-list"></ul>
+      <div class="history-buttons">
+        <button id="show-recent" class="history-btn active">Most Recent</button>
+        <button id="show-all" class="history-btn">Show All</button>
+      </div>
+      <ul id="past-winners" class="list"></ul>
     </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
+    let cachedHistory = [];
+    let showAllHistory = false;
+
     function getNextReset() {
       const now = new Date();
       const next = new Date(now);
-
-      // Saturday = 6
       const day = now.getDay();
       let daysUntilSaturday = (6 - day + 7) % 7;
 
       next.setDate(now.getDate() + daysUntilSaturday);
       next.setHours(0, 5, 0, 0);
 
-      // If it's already past Saturday 12:05 AM this week, move to next week
       if (next <= now) {
         next.setDate(next.getDate() + 7);
       }
@@ -406,15 +423,41 @@
       const latest = [...wagers].slice(-8).reverse();
 
       if (latest.length === 0) {
-        feed.innerHTML = `<li class="feed-item muted">No wagers yet.</li>`;
+        feed.innerHTML = `<li class="list-item muted">No wagers yet.</li>`;
         return;
       }
 
       latest.forEach((w) => {
         feed.innerHTML += `
-          <li class="feed-item">
+          <li class="list-item">
             <div><strong>${safeName(w)}</strong></div>
             <div>${Number(w.amount || 0).toFixed(3)} ◎ wagered</div>
+          </li>
+        `;
+      });
+    }
+
+    function renderHistory() {
+      const historyList = document.getElementById("past-winners");
+      historyList.innerHTML = "";
+
+      if (!cachedHistory.length) {
+        historyList.innerHTML = `<li class="list-item muted">No previous winners yet.</li>`;
+        return;
+      }
+
+      const rows = showAllHistory ? [...cachedHistory].reverse() : [cachedHistory[cachedHistory.length - 1]];
+
+      rows.forEach((week) => {
+        const winners = week.winners || [];
+        const dateText = week.date ? new Date(week.date).toLocaleDateString() : "Previous Week";
+
+        historyList.innerHTML += `
+          <li class="list-item">
+            <div><strong>${dateText}</strong></div>
+            <div>🥇 ${safeName(winners[0])}${winners[0] ? ` — ${Number(winners[0].amount || 0).toFixed(3)} ◎` : ""}</div>
+            <div>🥈 ${safeName(winners[1])}${winners[1] ? ` — ${Number(winners[1].amount || 0).toFixed(3)} ◎` : ""}</div>
+            <div>🥉 ${safeName(winners[2])}${winners[2] ? ` — ${Number(winners[2].amount || 0).toFixed(3)} ◎` : ""}</div>
           </li>
         `;
       });
@@ -423,32 +466,11 @@
     async function loadHistory() {
       try {
         const res = await fetch("/api/history");
-        const history = await res.json();
-
-        const historyList = document.getElementById("past-winners");
-        historyList.innerHTML = "";
-
-        if (!history.length) {
-          historyList.innerHTML = `<li class="history-item muted">No previous winners yet.</li>`;
-          return;
-        }
-
-        [...history].reverse().forEach((week) => {
-          const winners = week.winners || [];
-          const dateText = week.date ? new Date(week.date).toLocaleDateString() : "Previous Week";
-
-          historyList.innerHTML += `
-            <li class="history-item">
-              <div><strong>${dateText}</strong></div>
-              <div class="winner-line">🥇 ${safeName(winners[0])} ${winners[0] ? `— ${Number(winners[0].amount || 0).toFixed(3)} ◎` : ""}</div>
-              <div class="winner-line">🥈 ${safeName(winners[1])} ${winners[1] ? `— ${Number(winners[1].amount || 0).toFixed(3)} ◎` : ""}</div>
-              <div class="winner-line">🥉 ${safeName(winners[2])} ${winners[2] ? `— ${Number(winners[2].amount || 0).toFixed(3)} ◎` : ""}</div>
-            </li>
-          `;
-        });
+        cachedHistory = await res.json();
+        renderHistory();
       } catch (err) {
         document.getElementById("past-winners").innerHTML =
-          `<li class="history-item muted">Could not load winner history.</li>`;
+          `<li class="list-item muted">Could not load winner history.</li>`;
       }
     }
 
@@ -456,6 +478,20 @@
       await loadLeaderboard();
       await loadHistory();
     }
+
+    document.getElementById("show-recent").addEventListener("click", () => {
+      showAllHistory = false;
+      document.getElementById("show-recent").classList.add("active");
+      document.getElementById("show-all").classList.remove("active");
+      renderHistory();
+    });
+
+    document.getElementById("show-all").addEventListener("click", () => {
+      showAllHistory = true;
+      document.getElementById("show-all").classList.add("active");
+      document.getElementById("show-recent").classList.remove("active");
+      renderHistory();
+    });
 
     refreshAll();
     updateCountdown();
