@@ -22,6 +22,7 @@ const HISTORY_FILE = path.join(DATA_DIR, "history.json");
 
 let wagers = [];
 let history = [];
+let processedTx = new Set();
 
 fs.ensureDirSync(DATA_DIR);
 
@@ -71,7 +72,9 @@ app.get("/api/history", (req, res) => {
   res.json(history);
 });
 
+/* ADMIN CLEAR LEADERBOARD */
 app.get("/clear", (req, res) => {
+
   const key = req.query.key;
 
   if (key !== process.env.ADMIN_CLEAR_KEY) {
@@ -80,46 +83,70 @@ app.get("/clear", (req, res) => {
 
   wagers = [];
   saveWagers();
+
   io.emit("update");
 
   res.send("Leaderboard cleared");
+
 });
 
+/* WEBHOOK FOR HELIUS */
+
 app.post("/webhook", (req, res) => {
+
   const events = Array.isArray(req.body) ? req.body : [req.body];
 
-  events.forEach((ev) => {
-    const wallet = ev.feePayer || ev.wallet || null;
-    const amount = ev.nativeTransfers?.[0]?.amount
-      ? ev.nativeTransfers[0].amount / 1e9
-      : 0;
+  events.forEach(ev => {
 
-    const referral = ev.memo || ev.description || "";
+    const tx = ev.signature || ev.transactionSignature;
 
-    if (wallet && amount && String(referral).includes("rugsmademebroke")) {
+    if (tx && processedTx.has(tx)) return;
+
+    if (tx) processedTx.add(tx);
+
+    const wallet =
+      ev.feePayer ||
+      ev.account ||
+      ev.wallet ||
+      null;
+
+    let amount = 0;
+
+    if (ev.nativeTransfers && ev.nativeTransfers.length > 0) {
+      amount = ev.nativeTransfers[0].amount / 1e9;
+    }
+
+    const eventText = JSON.stringify(ev).toLowerCase();
+
+    const referralFound = eventText.includes("rugsmademebroke");
+
+    if (wallet && amount > 0 && referralFound) {
+
       wagers.push({
         user: wallet,
         username: ev.username || null,
         amount: amount,
         createdAt: new Date().toISOString()
       });
+
+      console.log("New wager detected:", wallet, amount);
     }
+
   });
 
   saveWagers();
+
   io.emit("update");
 
   res.sendStatus(200);
+
 });
 
-/*
-  Weekly reset:
-  Saturday at 12:05 AM
-  Cron format: minute hour day month weekday
-  Saturday = 6
-*/
+/* WEEKLY RESET — SUNDAY 12:05 AM */
+
 cron.schedule("5 0 * * 0", () => {
-  console.log("Running weekly leaderboard reset...");
+
+  console.log("Running weekly leaderboard reset");
 
   const winners = getLeaderboardTotals().slice(0, 3);
 
@@ -134,6 +161,7 @@ cron.schedule("5 0 * * 0", () => {
   saveWagers();
 
   io.emit("update");
+
 });
 
 io.on("connection", () => {
