@@ -1,32 +1,42 @@
 // server.js
-require('dotenv').config(); // load .env
-const express = require('express');
-const fetch = require('node-fetch'); // make sure you installed node-fetch@2
-const http = require('http');
-const { Server } = require('socket.io');
+
+require("dotenv").config();
+
+const express = require("express");
+const fetch = require("node-fetch");
+const http = require("http");
+const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000; // IMPORTANT for Render
 const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
 
 app.use(express.json());
-app.use(express.static('public')); // your index.html and JS live here
+app.use(express.static("public"));
 
 let wagers = [];
 
-// Endpoint to get all wagers
-app.get("/api/wagers", async (req, res) => {
+/*
+Return wagers to the leaderboard
+*/
+app.get("/api/wagers", (req, res) => {
   res.json(wagers);
 });
 
-// Example: fetch mints from Helius (optional if you want to auto-populate)
+/*
+Optional Helius test endpoint
+*/
 app.get("/api/fetchHelius", async (req, res) => {
   try {
-    const response = await fetch(`https://api.helius.xyz/v0/mints?api-key=${HELIUS_API_KEY}`);
+    const response = await fetch(
+      `https://api.helius.xyz/v0/mints?api-key=${HELIUS_API_KEY}`
+    );
+
     const data = await response.json();
+
     res.json(data);
   } catch (err) {
     console.error(err);
@@ -34,29 +44,49 @@ app.get("/api/fetchHelius", async (req, res) => {
   }
 });
 
-// Webhook endpoint for real-time wagers
+/*
+Webhook endpoint
+Helius will send transactions here
+*/
 app.post("/webhook", (req, res) => {
+
   const events = req.body;
 
   events.forEach(ev => {
+
     const wallet = ev.feePayer;
     const amount = ev.nativeTransfers?.[0]?.amount / 1e9;
     const referral = ev.memo;
 
     if (wallet && amount && referral === "rugsmademebroke") {
+
       wagers.push({
-        user: wallet, // you can replace this with username if Helius provides it
+        user: wallet,
         amount: amount
       });
+
+      console.log("New wager:", wallet, amount);
+
     }
+
   });
 
-  // Tell all browsers to reload leaderboard
+  // tell all browsers to update leaderboard
   io.emit("update");
 
   res.sendStatus(200);
 });
 
+/*
+Socket connection
+*/
+io.on("connection", (socket) => {
+  console.log("User connected");
+});
+
+/*
+Start server
+*/
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
