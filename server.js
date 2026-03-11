@@ -1,52 +1,67 @@
-// server.js
-
 require("dotenv").config();
 
 const express = require("express");
-const fetch = require("node-fetch");
 const http = require("http");
 const { Server } = require("socket.io");
+const cron = require("node-cron");
+const fs = require("fs-extra");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const PORT = process.env.PORT || 3000; // IMPORTANT for Render
-const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.static("public"));
 
+const DATA_FILE = "wagers.json";
+const HISTORY_FILE = "history.json";
+
 let wagers = [];
+let history = [];
 
 /*
-Return wagers to the leaderboard
+Load saved data when server starts
+*/
+if (fs.existsSync(DATA_FILE)) {
+  wagers = fs.readJsonSync(DATA_FILE);
+}
+
+if (fs.existsSync(HISTORY_FILE)) {
+  history = fs.readJsonSync(HISTORY_FILE);
+}
+
+/*
+Save wagers to disk
+*/
+function saveWagers() {
+  fs.writeJsonSync(DATA_FILE, wagers);
+}
+
+/*
+Save history
+*/
+function saveHistory() {
+  fs.writeJsonSync(HISTORY_FILE, history);
+}
+
+/*
+Return leaderboard
 */
 app.get("/api/wagers", (req, res) => {
   res.json(wagers);
 });
 
 /*
-Optional Helius test endpoint
+Return past winners
 */
-app.get("/api/fetchHelius", async (req, res) => {
-  try {
-    const response = await fetch(
-      `https://api.helius.xyz/v0/mints?api-key=${HELIUS_API_KEY}`
-    );
-
-    const data = await response.json();
-
-    res.json(data);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error fetching from Helius");
-  }
+app.get("/api/history", (req, res) => {
+  res.json(history);
 });
 
 /*
 Webhook endpoint
-Helius will send transactions here
 */
 app.post("/webhook", (req, res) => {
 
@@ -65,22 +80,58 @@ app.post("/webhook", (req, res) => {
         amount: amount
       });
 
+      saveWagers();
+
       console.log("New wager:", wallet, amount);
 
     }
 
   });
 
-  // tell all browsers to update leaderboard
   io.emit("update");
 
   res.sendStatus(200);
 });
 
 /*
+Weekly reset
+Saturday 00:05
+*/
+cron.schedule("5 0 * * 6", () => {
+
+  console.log("Weekly reset");
+
+  const totals = {};
+
+  wagers.forEach(w => {
+    if (!totals[w.user]) totals[w.user] = 0;
+    totals[w.user] += w.amount;
+  });
+
+  const sorted = Object.entries(totals)
+    .map(([user, amount]) => ({ user, amount }))
+    .sort((a, b) => b.amount - a.amount);
+
+  const winners = sorted.slice(0, 3);
+
+  history.push({
+    date: new Date(),
+    winners
+  });
+
+  saveHistory();
+
+  wagers = [];
+  saveWagers();
+
+  io.emit("update");
+
+});
+
+/*
 Socket connection
 */
-io.on("connection", (socket) => {
+io.on("connection", () => {
   console.log("User connected");
 });
 
@@ -88,5 +139,5 @@ io.on("connection", (socket) => {
 Start server
 */
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log("Server running on port " + PORT);
 });
