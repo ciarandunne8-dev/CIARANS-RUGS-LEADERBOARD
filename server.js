@@ -104,7 +104,7 @@ app.post("/webhook", (req, res) => {
   Cron format: minute hour day month weekday
   Saturday = 6
 */
-cron.schedule("5 0 * * 6", () => {
+cron.schedule("5 0 * * 0", () => {
   console.log("Running weekly leaderboard reset...");
 
   const winners = getLeaderboardTotals().slice(0, 3);

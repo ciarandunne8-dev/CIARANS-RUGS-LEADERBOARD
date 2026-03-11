@@ -272,8 +272,6 @@
       background: #333;
     }
 
-    /* MODAL */
-
     .modal {
       display: none;
       position: fixed;
@@ -382,7 +380,7 @@
     <div class="competition-grid">
       <div class="stat-box">
         <div class="stat-label">Reset Time</div>
-        <div class="stat-value">Saturday 12:05 AM</div>
+        <div class="stat-value">Sunday 12:05 AM</div>
       </div>
       <div class="stat-box">
         <div class="stat-label">Countdown</div>
@@ -460,10 +458,11 @@
     function getNextReset() {
       const now = new Date();
       const next = new Date(now);
-      const day = now.getDay();
-      let daysUntilSaturday = (6 - day + 7) % 7;
 
-      next.setDate(now.getDate() + daysUntilSaturday);
+      const day = now.getDay(); // Sunday = 0
+      let daysUntilSunday = (7 - day) % 7;
+
+      next.setDate(now.getDate() + daysUntilSunday);
       next.setHours(0, 5, 0, 0);
 
       if (next <= now) {
