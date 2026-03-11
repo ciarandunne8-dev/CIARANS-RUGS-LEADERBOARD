@@ -72,9 +72,7 @@ app.get("/api/history", (req, res) => {
   res.json(history);
 });
 
-/* ADMIN CLEAR LEADERBOARD */
 app.get("/clear", (req, res) => {
-
   const key = req.query.key;
 
   if (key !== process.env.ADMIN_CLEAR_KEY) {
@@ -83,45 +81,46 @@ app.get("/clear", (req, res) => {
 
   wagers = [];
   saveWagers();
-
   io.emit("update");
 
   res.send("Leaderboard cleared");
-
 });
 
-/* WEBHOOK FOR HELIUS */
-
 app.post("/webhook", (req, res) => {
+  console.log("Webhook hit");
+  console.log("Body:", JSON.stringify(req.body, null, 2));
 
   const events = Array.isArray(req.body) ? req.body : [req.body];
 
-  events.forEach(ev => {
-
+  events.forEach((ev) => {
     const tx = ev.signature || ev.transactionSignature;
 
-    if (tx && processedTx.has(tx)) return;
+    if (tx && processedTx.has(tx)) {
+      console.log("Skipped duplicate tx:", tx);
+      return;
+    }
 
-    if (tx) processedTx.add(tx);
+    if (tx) {
+      processedTx.add(tx);
+    }
 
-    const wallet =
-      ev.feePayer ||
-      ev.account ||
-      ev.wallet ||
-      null;
+    const wallet = ev.feePayer || ev.account || ev.wallet || null;
 
     let amount = 0;
-
     if (ev.nativeTransfers && ev.nativeTransfers.length > 0) {
       amount = ev.nativeTransfers[0].amount / 1e9;
     }
 
     const eventText = JSON.stringify(ev).toLowerCase();
-
     const referralFound = eventText.includes("rugsmademebroke");
 
-    if (wallet && amount >= 0.001 && referralFound) {
+    console.log("Parsed webhook event:", {
+      wallet,
+      amount,
+      referralFound
+    });
 
+    if (wallet && amount >= 0.001 && referralFound) {
       wagers.push({
         user: wallet,
         username: ev.username || null,
@@ -130,22 +129,22 @@ app.post("/webhook", (req, res) => {
       });
 
       console.log("New wager detected:", wallet, amount);
+    } else {
+      console.log("Wager rejected:", {
+        wallet,
+        amount,
+        referralFound
+      });
     }
-
   });
 
   saveWagers();
-
   io.emit("update");
 
   res.sendStatus(200);
-
 });
 
-/* WEEKLY RESET — SUNDAY 12:05 AM */
-
 cron.schedule("5 0 * * 0", () => {
-
   console.log("Running weekly leaderboard reset");
 
   const winners = getLeaderboardTotals().slice(0, 3);
@@ -161,7 +160,6 @@ cron.schedule("5 0 * * 0", () => {
   saveWagers();
 
   io.emit("update");
-
 });
 
 io.on("connection", () => {
@@ -170,4 +168,20 @@ io.on("connection", () => {
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+});
+
+server.on("close", () => {
+  console.log("Server closed");
+});
+
+process.on("exit", (code) => {
+  console.log("Process exiting with code:", code);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught exception:", err);
+});
+
+process.on("unhandledRejection", (err) => {
+  console.error("Unhandled rejection:", err);
 });
