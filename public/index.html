@@ -1,246 +1,246 @@
-```html
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Ciaran's Rugs.fun Leaderboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ciaran's Rugs.fun Leaderboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Press Start 2P', monospace;
+      background: #1a1a1a;
+      color: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px;
+      margin: 0;
+    }
 
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    h1 {
+      font-size: 26px;
+      margin: 20px 0 40px;
+      color: #ffd700;
+      text-shadow: 2px 2px #000;
+      text-align: center;
+    }
 
-<style>
+    .podium {
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 40px;
+      margin-bottom: 50px;
+      flex-wrap: wrap;
+    }
 
-body{
-font-family:'Press Start 2P',monospace;
-background:#1A1A1A;
-color:#F0F0F0;
-display:flex;
-flex-direction:column;
-align-items:center;
-padding:30px;
-}
+    .podium-place {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 140px;
+      font-size: 12px;
+      text-align: center;
+    }
 
-h1{
-font-size:26px;
-margin-bottom:40px;
-color:#FFD700;
-text-shadow:2px 2px #000;
-}
+    .first {
+      transform: translateY(-20px);
+    }
 
-/* PODIUM */
+    .second {
+      transform: translateY(0);
+    }
 
-.podium{
-display:flex;
-justify-content:center;
-gap:40px;
-margin-bottom:50px;
-align-items:flex-end;
-}
+    .third {
+      transform: translateY(10px);
+    }
 
-.podium-place{
-display:flex;
-flex-direction:column;
-align-items:center;
-width:140px;
-font-size:12px;
-}
+    .medal {
+      font-size: 42px;
+      margin-bottom: 8px;
+      line-height: 1;
+      animation: bounce 3s ease-in-out infinite;
+      display: inline-block;
+    }
 
-.first{
-transform:translateY(-20px);
-}
+    @keyframes bounce {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-10px);
+      }
+    }
 
-.second{
-transform:translateY(0);
-}
+    .gold-glow {
+      text-shadow:
+        0 0 10px gold,
+        0 0 20px gold,
+        0 0 30px gold;
+    }
 
-.third{
-transform:translateY(10px);
-}
+    .silver-glow {
+      text-shadow:
+        0 0 10px #c0c0c0,
+        0 0 20px #c0c0c0;
+    }
 
-.medal{
-font-size:42px;
-margin-bottom:8px;
-}
+    .bronze-glow {
+      text-shadow:
+        0 0 10px #cd7f32,
+        0 0 20px #cd7f32;
+    }
 
-/* GLOW EFFECTS */
+    .podium-user {
+      margin-top: 8px;
+      min-height: 20px;
+    }
 
-.gold-glow{
-text-shadow:
-0 0 10px gold,
-0 0 20px gold,
-0 0 30px gold;
-}
+    .podium-prize {
+      margin-top: 8px;
+    }
 
-.silver-glow{
-text-shadow:
-0 0 10px #C0C0C0,
-0 0 20px #C0C0C0;
-}
+    table {
+      border-collapse: collapse;
+      width: min(700px, 95vw);
+      background: #2a2a2a;
+      border: 4px solid #555;
+    }
 
-.bronze-glow{
-text-shadow:
-0 0 10px #CD7F32,
-0 0 20px #CD7F32;
-}
+    th, td {
+      padding: 10px;
+      text-align: center;
+      border: 2px solid #555;
+      font-size: 10px;
+    }
 
-/* TABLE */
+    th {
+      background: #333;
+      color: #ffd700;
+    }
 
-table{
-border-collapse:collapse;
-width:700px;
-background:#2A2A2A;
-border:4px solid #555;
-}
+    tr.gold {
+      background: #ffd700;
+      color: #000;
+      font-weight: bold;
+    }
 
-th,td{
-padding:10px;
-text-align:center;
-border:2px solid #555;
-font-size:10px;
-}
+    tr.silver {
+      background: #c0c0c0;
+      color: #000;
+      font-weight: bold;
+    }
 
-th{
-background:#333;
-color:#FFD700;
-}
+    tr.bronze {
+      background: #cd7f32;
+      color: #000;
+      font-weight: bold;
+    }
 
-tr.gold{
-background:#FFD700;
-color:#000;
-font-weight:bold;
-}
-
-tr.silver{
-background:#C0C0C0;
-color:#000;
-font-weight:bold;
-}
-
-tr.bronze{
-background:#CD7F32;
-color:#000;
-font-weight:bold;
-}
-
-tr:hover{
-background:#444;
-}
-
-</style>
-
+    tr:hover {
+      background: #444;
+    }
+  </style>
 </head>
-
 <body>
+  <h1>Ciaran's Rugs.fun Leaderboard</h1>
 
-<h1>Ciaran's Rugs.fun Leaderboard</h1>
+  <div class="podium">
+    <div class="podium-place second">
+      <div class="medal silver-glow">🥈</div>
+      <div id="second-user" class="podium-user">---</div>
+      <div class="podium-prize">0.4 SOL</div>
+    </div>
 
-<div class="podium">
+    <div class="podium-place first">
+      <div class="medal gold-glow">🥇</div>
+      <div id="first-user" class="podium-user">---</div>
+      <div class="podium-prize">0.8 SOL</div>
+    </div>
 
-<div class="podium-place second">
-<div class="medal silver-glow">🥈</div>
-<div id="second-user">---</div>
-<div>0.4 SOL</div>
-</div>
+    <div class="podium-place third">
+      <div class="medal bronze-glow">🥉</div>
+      <div id="third-user" class="podium-user">---</div>
+      <div class="podium-prize">0.3 SOL</div>
+    </div>
+  </div>
 
-<div class="podium-place first">
-<div class="medal gold-glow">🥇</div>
-<div id="first-user">---</div>
-<div>0.8 SOL</div>
-</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Rank</th>
+        <th>User</th>
+        <th>Total Wagered</th>
+        <th>Prize</th>
+      </tr>
+    </thead>
+    <tbody id="leaderboard"></tbody>
+  </table>
 
-<div class="podium-place third">
-<div class="medal bronze-glow">🥉</div>
-<div id="third-user">---</div>
-<div>0.3 SOL</div>
-</div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    async function loadData() {
+      const res = await fetch("/api/wagers");
+      const wagers = await res.json();
 
-</div>
+      const totals = {};
 
-<table>
+      wagers.forEach((w) => {
+        if (!totals[w.user]) {
+          totals[w.user] = {
+            amount: 0,
+            username: w.username
+          };
+        }
+        totals[w.user].amount += w.amount;
+      });
 
-<thead>
-<tr>
-<th>Rank</th>
-<th>User</th>
-<th>Total Wagered</th>
-<th>Prize</th>
-</tr>
-</thead>
+      const sorted = Object.values(totals).sort((a, b) => b.amount - a.amount);
 
-<tbody id="leaderboard"></tbody>
+      document.getElementById("first-user").textContent =
+        sorted[0]?.username || "---";
+      document.getElementById("second-user").textContent =
+        sorted[1]?.username || "---";
+      document.getElementById("third-user").textContent =
+        sorted[2]?.username || "---";
 
-</table>
+      const tbody = document.getElementById("leaderboard");
+      tbody.innerHTML = "";
 
-<script src="/socket.io/socket.io.js"></script>
+      sorted.forEach((entry, i) => {
+        let prize = "";
+        let rowClass = "";
 
-<script>
+        if (i === 0) {
+          prize = "0.8 SOL";
+          rowClass = "gold";
+        } else if (i === 1) {
+          prize = "0.4 SOL";
+          rowClass = "silver";
+        } else if (i === 2) {
+          prize = "0.3 SOL";
+          rowClass = "bronze";
+        }
 
-async function loadData(){
+        const displayName = entry.username || "Unknown";
 
-const res = await fetch("/api/wagers")
-const wagers = await res.json()
+        tbody.innerHTML += `
+          <tr class="${rowClass}">
+            <td>${i + 1}</td>
+            <td>${displayName}</td>
+            <td>${entry.amount.toFixed(3)} ◎</td>
+            <td>${prize}</td>
+          </tr>
+        `;
+      });
+    }
 
-const totals={}
+    loadData();
 
-wagers.forEach(w=>{
+    const socket = io();
+    socket.on("update", () => loadData());
 
-if(!totals[w.user]){
-totals[w.user]={amount:0,username:w.username}
-}
-
-totals[w.user].amount+=w.amount
-
-})
-
-const sorted=Object.values(totals).sort((a,b)=>b.amount-a.amount)
-
-if(sorted[0]){
-document.getElementById("first-user").textContent=sorted[0].username||"Unknown"
-}
-
-if(sorted[1]){
-document.getElementById("second-user").textContent=sorted[1].username||"Unknown"
-}
-
-if(sorted[2]){
-document.getElementById("third-user").textContent=sorted[2].username||"Unknown"
-}
-
-const tbody=document.getElementById("leaderboard")
-tbody.innerHTML=""
-
-sorted.forEach((entry,i)=>{
-
-let prize=""
-let rowClass=""
-
-if(i===0){prize="0.8 SOL";rowClass="gold"}
-if(i===1){prize="0.4 SOL";rowClass="silver"}
-if(i===2){prize="0.3 SOL";rowClass="bronze"}
-
-const displayName=entry.username||"Unknown"
-
-tbody.innerHTML+=`
-<tr class="${rowClass}">
-<td>${i+1}</td>
-<td>${displayName}</td>
-<td>${entry.amount.toFixed(3)} ◎</td>
-<td>${prize}</td>
-</tr>
-`
-
-})
-
-}
-
-loadData()
-
-const socket=io()
-
-socket.on("update",()=>loadData())
-
-setInterval(loadData,15000)
-
-</script>
-
+    setInterval(loadData, 15000);
+  </script>
 </body>
 </html>
-```
