@@ -12,13 +12,25 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
+const MIN_WAGER_SOL = 0.001;
 
-app.use(express.json());
+/*
+  Track both:
+  - visible referral code
+  - internal referral link ID
+*/
+const REFERRAL_MATCHES = [
+  "rugsmademebroke",
+  "ref_s70nl5xp4o7m"
+];
+
+app.use(express.json({ limit: "2mb" }));
 app.use(express.static("public"));
 
 const DATA_DIR = path.join(__dirname, "data");
 const WAGERS_FILE = path.join(DATA_DIR, "wagers.json");
 const HISTORY_FILE = path.join(DATA_DIR, "history.json");
+const PROCESSED_FILE = path.join(DATA_DIR, "processedTx.json");
 
 let wagers = [];
 let history = [];
@@ -34,12 +46,21 @@ if (fs.existsSync(HISTORY_FILE)) {
   history = fs.readJsonSync(HISTORY_FILE);
 }
 
+if (fs.existsSync(PROCESSED_FILE)) {
+  const savedProcessed = fs.readJsonSync(PROCESSED_FILE);
+  processedTx = new Set(Array.isArray(savedProcessed) ? savedProcessed : []);
+}
+
 function saveWagers() {
   fs.writeJsonSync(WAGERS_FILE, wagers, { spaces: 2 });
 }
 
 function saveHistory() {
   fs.writeJsonSync(HISTORY_FILE, history, { spaces: 2 });
+}
+
+function saveProcessedTx() {
+  fs.writeJsonSync(PROCESSED_FILE, Array.from(processedTx), { spaces: 2 });
 }
 
 function getLeaderboardTotals() {
@@ -64,6 +85,28 @@ function getLeaderboardTotals() {
   return Object.values(totals).sort((a, b) => b.amount - a.amount);
 }
 
+function referralMatchFound(ev) {
+  const eventText = JSON.stringify(ev).toLowerCase();
+  return REFERRAL_MATCHES.some((term) => eventText.includes(term));
+}
+
+function extractWallet(ev) {
+  return ev.feePayer || ev.account || ev.wallet || ev.signer || null;
+}
+
+function extractAmount(ev) {
+  if (ev.nativeTransfers && Array.isArray(ev.nativeTransfers) && ev.nativeTransfers.length > 0) {
+    const lamports = Number(ev.nativeTransfers[0].amount || 0);
+    return lamports / 1e9;
+  }
+
+  return 0;
+}
+
+function extractSignature(ev) {
+  return ev.signature || ev.transactionSignature || ev.txHash || null;
+}
+
 app.get("/api/wagers", (req, res) => {
   res.json(wagers);
 });
@@ -72,6 +115,7 @@ app.get("/api/history", (req, res) => {
   res.json(history);
 });
 
+/* secure admin clear */
 app.get("/clear", (req, res) => {
   const key = req.query.key;
 
@@ -81,11 +125,22 @@ app.get("/clear", (req, res) => {
 
   wagers = [];
   saveWagers();
+
   io.emit("update");
 
   res.send("Leaderboard cleared");
 });
 
+/* optional health check */
+app.get("/health", (req, res) => {
+  res.json({
+    ok: true,
+    wagers: wagers.length,
+    historyWeeks: history.length
+  });
+});
+
+/* webhook */
 app.post("/webhook", (req, res) => {
   console.log("Webhook hit");
   console.log("Body:", JSON.stringify(req.body, null, 2));
@@ -93,57 +148,61 @@ app.post("/webhook", (req, res) => {
   const events = Array.isArray(req.body) ? req.body : [req.body];
 
   events.forEach((ev) => {
-    const tx = ev.signature || ev.transactionSignature;
+    const tx = extractSignature(ev);
 
     if (tx && processedTx.has(tx)) {
       console.log("Skipped duplicate tx:", tx);
       return;
     }
 
-    if (tx) {
-      processedTx.add(tx);
-    }
-
-    const wallet = ev.feePayer || ev.account || ev.wallet || null;
-
-    let amount = 0;
-    if (ev.nativeTransfers && ev.nativeTransfers.length > 0) {
-      amount = ev.nativeTransfers[0].amount / 1e9;
-    }
-
-    const eventText = JSON.stringify(ev).toLowerCase();
-    const referralFound = eventText.includes("rugsmademebroke");
+    const wallet = extractWallet(ev);
+    const amount = extractAmount(ev);
+    const referralFound = referralMatchFound(ev);
 
     console.log("Parsed webhook event:", {
       wallet,
       amount,
-      referralFound
+      referralFound,
+      tx
     });
 
-    if (wallet && amount >= 0.001 && referralFound) {
+    if (wallet && amount >= MIN_WAGER_SOL && referralFound) {
       wagers.push({
         user: wallet,
         username: ev.username || null,
         amount: amount,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        tx: tx
       });
+
+      if (tx) {
+        processedTx.add(tx);
+        saveProcessedTx();
+      }
+
+      saveWagers();
 
       console.log("New wager detected:", wallet, amount);
     } else {
       console.log("Wager rejected:", {
         wallet,
         amount,
-        referralFound
+        referralFound,
+        minimumRequired: MIN_WAGER_SOL
       });
     }
   });
 
-  saveWagers();
   io.emit("update");
-
   res.sendStatus(200);
 });
 
+/*
+  Weekly reset:
+  Sunday at 12:05 AM
+  minute hour day month weekday
+  Sunday = 0
+*/
 cron.schedule("5 0 * * 0", () => {
   console.log("Running weekly leaderboard reset");
 
@@ -158,6 +217,9 @@ cron.schedule("5 0 * * 0", () => {
 
   wagers = [];
   saveWagers();
+
+  processedTx.clear();
+  saveProcessedTx();
 
   io.emit("update");
 });
