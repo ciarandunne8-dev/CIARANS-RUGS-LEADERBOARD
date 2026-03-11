@@ -30,79 +30,55 @@ text-shadow:2px 2px #000;
 .podium{
 display:flex;
 justify-content:center;
-align-items:flex-end;
 gap:40px;
 margin-bottom:50px;
+align-items:flex-end;
 }
 
 .podium-place{
 display:flex;
 flex-direction:column;
 align-items:center;
-width:130px;
-}
-
-.first{transform:translateY(-20px);}
-.second{transform:translateY(0);}
-.third{transform:translateY(10px);}
-
-.place-label{
-margin-top:8px;
+width:140px;
 font-size:12px;
 }
 
-.prize{
-font-size:10px;
-opacity:0.8;
+.first{
+transform:translateY(-20px);
 }
 
-/* MEDALS */
+.second{
+transform:translateY(0);
+}
+
+.third{
+transform:translateY(10px);
+}
 
 .medal{
-width:70px;
-height:70px;
-border-radius:50%;
-animation:spin 6s linear infinite, glow 2s ease-in-out infinite alternate;
+font-size:42px;
+margin-bottom:8px;
 }
 
-.gold{
-background:linear-gradient(145deg,#ffd700,#ffb300);
-box-shadow:0 0 20px rgba(255,215,0,0.9);
+/* GLOW EFFECTS */
+
+.gold-glow{
+text-shadow:
+0 0 10px gold,
+0 0 20px gold,
+0 0 30px gold;
 }
 
-.silver{
-background:linear-gradient(145deg,#e0e0e0,#9e9e9e);
-box-shadow:0 0 18px rgba(220,220,220,0.9);
+.silver-glow{
+text-shadow:
+0 0 10px #C0C0C0,
+0 0 20px #C0C0C0;
 }
 
-.bronze{
-background:linear-gradient(145deg,#cd7f32,#8c4b1f);
-box-shadow:0 0 15px rgba(205,127,50,0.9);
-}
-
-/* crown */
-
-.crown{
-font-size:28px;
-animation:crownFloat 2s ease-in-out infinite;
-}
-
-@keyframes crownFloat{
-0%{transform:translateY(0)}
-50%{transform:translateY(-6px)}
-100%{transform:translateY(0)}
-}
-
-/* animations */
-
-@keyframes spin{
-0%{transform:rotateY(0deg);}
-100%{transform:rotateY(360deg);}
-}
-
-@keyframes glow{
-from{filter:brightness(1)}
-to{filter:brightness(1.3)}
+.bronze-glow{
+text-shadow:
+0 0 10px #CD7F32,
+0 0 20px #CD7F32;
 }
 
 /* TABLE */
@@ -159,25 +135,21 @@ background:#444;
 <div class="podium">
 
 <div class="podium-place second">
-<div class="medal silver"></div>
+<div class="medal silver-glow">🥈</div>
 <div id="second-user">---</div>
-<div class="place-label">2nd</div>
-<div class="prize">0.4 SOL</div>
+<div>0.4 SOL</div>
 </div>
 
 <div class="podium-place first">
-<div class="crown">👑</div>
-<div class="medal gold"></div>
+<div class="medal gold-glow">🥇</div>
 <div id="first-user">---</div>
-<div class="place-label">1st</div>
-<div class="prize">0.8 SOL</div>
+<div>0.8 SOL</div>
 </div>
 
 <div class="podium-place third">
-<div class="medal bronze"></div>
+<div class="medal bronze-glow">🥉</div>
 <div id="third-user">---</div>
-<div class="place-label">3rd</div>
-<div class="prize">0.3 SOL</div>
+<div>0.3 SOL</div>
 </div>
 
 </div>
@@ -218,7 +190,7 @@ totals[w.user].amount+=w.amount
 
 })
 
-const sorted = Object.values(totals).sort((a,b)=>b.amount-a.amount)
+const sorted=Object.values(totals).sort((a,b)=>b.amount-a.amount)
 
 if(sorted[0]){
 document.getElementById("first-user").textContent=sorted[0].username||"Unknown"
