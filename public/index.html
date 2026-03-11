@@ -13,16 +13,57 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 30px;
+      padding: 24px;
       margin: 0;
     }
 
     h1 {
-      font-size: 26px;
-      margin: 20px 0 40px;
+      font-size: 24px;
+      margin: 16px 0 28px;
       color: #ffd700;
       text-shadow: 2px 2px #000;
       text-align: center;
+    }
+
+    .panel {
+      width: min(900px, 95vw);
+      background: #2a2a2a;
+      border: 4px solid #555;
+      margin-bottom: 24px;
+      padding: 18px;
+      box-sizing: border-box;
+    }
+
+    .panel-title {
+      font-size: 14px;
+      color: #ffd700;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    .competition-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      text-align: center;
+    }
+
+    .stat-box {
+      background: #1c1c1c;
+      border: 2px solid #555;
+      padding: 14px 10px;
+    }
+
+    .stat-label {
+      font-size: 9px;
+      color: #cfcfcf;
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-size: 11px;
+      color: #ffd700;
+      line-height: 1.5;
     }
 
     .podium {
@@ -30,7 +71,7 @@
       justify-content: center;
       align-items: flex-end;
       gap: 40px;
-      margin-bottom: 50px;
+      margin-bottom: 36px;
       flex-wrap: wrap;
     }
 
@@ -102,9 +143,10 @@
 
     table {
       border-collapse: collapse;
-      width: min(700px, 95vw);
+      width: min(900px, 95vw);
       background: #2a2a2a;
       border: 4px solid #555;
+      margin-bottom: 24px;
     }
 
     th, td {
@@ -140,10 +182,79 @@
     tr:hover {
       background: #444;
     }
+
+    .two-column {
+      width: min(900px, 95vw);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    .feed-list,
+    .history-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .feed-item,
+    .history-item {
+      background: #1c1c1c;
+      border: 2px solid #555;
+      padding: 12px;
+      margin-bottom: 10px;
+      font-size: 9px;
+      line-height: 1.6;
+    }
+
+    .winner-line {
+      margin-top: 8px;
+    }
+
+    .muted {
+      color: #bdbdbd;
+    }
+
+    @media (max-width: 800px) {
+      .competition-grid,
+      .two-column {
+        grid-template-columns: 1fr;
+      }
+
+      .podium {
+        gap: 20px;
+      }
+
+      .podium-place {
+        width: 110px;
+      }
+
+      h1 {
+        font-size: 18px;
+      }
+    }
   </style>
 </head>
 <body>
   <h1>Ciaran's Rugs.fun Leaderboard</h1>
+
+  <div class="panel">
+    <div class="panel-title">Weekly Competition</div>
+    <div class="competition-grid">
+      <div class="stat-box">
+        <div class="stat-label">Reset Time</div>
+        <div class="stat-value">Saturday 12:05 AM</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Countdown</div>
+        <div class="stat-value" id="countdown">Loading...</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Current Pool</div>
+        <div class="stat-value" id="current-pool">0.000 ◎</div>
+      </div>
+    </div>
+  </div>
 
   <div class="podium">
     <div class="podium-place second">
@@ -177,32 +288,85 @@
     <tbody id="leaderboard"></tbody>
   </table>
 
+  <div class="two-column">
+    <div class="panel">
+      <div class="panel-title">Live Wager Feed</div>
+      <ul id="live-feed" class="feed-list"></ul>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Past Winners</div>
+      <ul id="past-winners" class="history-list"></ul>
+    </div>
+  </div>
+
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    async function loadData() {
+    function getNextReset() {
+      const now = new Date();
+      const next = new Date(now);
+
+      // Saturday = 6
+      const day = now.getDay();
+      let daysUntilSaturday = (6 - day + 7) % 7;
+
+      next.setDate(now.getDate() + daysUntilSaturday);
+      next.setHours(0, 5, 0, 0);
+
+      // If it's already past Saturday 12:05 AM this week, move to next week
+      if (next <= now) {
+        next.setDate(next.getDate() + 7);
+      }
+
+      return next;
+    }
+
+    function updateCountdown() {
+      const now = new Date();
+      const nextReset = getNextReset();
+      const diff = nextReset - now;
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diff / (1000 * 60)) % 60);
+      const seconds = Math.floor((diff / 1000) % 60);
+
+      document.getElementById("countdown").textContent =
+        `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    }
+
+    function safeName(entry) {
+      return entry?.username || entry?.user || "Unknown";
+    }
+
+    async function loadLeaderboard() {
       const res = await fetch("/api/wagers");
       const wagers = await res.json();
 
       const totals = {};
+      let currentPool = 0;
 
       wagers.forEach((w) => {
+        currentPool += Number(w.amount || 0);
+
         if (!totals[w.user]) {
           totals[w.user] = {
-            amount: 0,
-            username: w.username
+            user: w.user,
+            username: w.username,
+            amount: 0
           };
         }
-        totals[w.user].amount += w.amount;
+
+        totals[w.user].amount += Number(w.amount || 0);
       });
 
       const sorted = Object.values(totals).sort((a, b) => b.amount - a.amount);
 
-      document.getElementById("first-user").textContent =
-        sorted[0]?.username || "---";
-      document.getElementById("second-user").textContent =
-        sorted[1]?.username || "---";
-      document.getElementById("third-user").textContent =
-        sorted[2]?.username || "---";
+      document.getElementById("current-pool").textContent = `${currentPool.toFixed(3)} ◎`;
+
+      document.getElementById("first-user").textContent = safeName(sorted[0]);
+      document.getElementById("second-user").textContent = safeName(sorted[1]);
+      document.getElementById("third-user").textContent = safeName(sorted[2]);
 
       const tbody = document.getElementById("leaderboard");
       tbody.innerHTML = "";
@@ -222,25 +386,85 @@
           rowClass = "bronze";
         }
 
-        const displayName = entry.username || "Unknown";
-
         tbody.innerHTML += `
           <tr class="${rowClass}">
             <td>${i + 1}</td>
-            <td>${displayName}</td>
+            <td>${safeName(entry)}</td>
             <td>${entry.amount.toFixed(3)} ◎</td>
             <td>${prize}</td>
           </tr>
         `;
       });
+
+      renderLiveFeed(wagers);
     }
 
-    loadData();
+    function renderLiveFeed(wagers) {
+      const feed = document.getElementById("live-feed");
+      feed.innerHTML = "";
+
+      const latest = [...wagers].slice(-8).reverse();
+
+      if (latest.length === 0) {
+        feed.innerHTML = `<li class="feed-item muted">No wagers yet.</li>`;
+        return;
+      }
+
+      latest.forEach((w) => {
+        feed.innerHTML += `
+          <li class="feed-item">
+            <div><strong>${safeName(w)}</strong></div>
+            <div>${Number(w.amount || 0).toFixed(3)} ◎ wagered</div>
+          </li>
+        `;
+      });
+    }
+
+    async function loadHistory() {
+      try {
+        const res = await fetch("/api/history");
+        const history = await res.json();
+
+        const historyList = document.getElementById("past-winners");
+        historyList.innerHTML = "";
+
+        if (!history.length) {
+          historyList.innerHTML = `<li class="history-item muted">No previous winners yet.</li>`;
+          return;
+        }
+
+        [...history].reverse().forEach((week) => {
+          const winners = week.winners || [];
+          const dateText = week.date ? new Date(week.date).toLocaleDateString() : "Previous Week";
+
+          historyList.innerHTML += `
+            <li class="history-item">
+              <div><strong>${dateText}</strong></div>
+              <div class="winner-line">🥇 ${safeName(winners[0])} ${winners[0] ? `— ${Number(winners[0].amount || 0).toFixed(3)} ◎` : ""}</div>
+              <div class="winner-line">🥈 ${safeName(winners[1])} ${winners[1] ? `— ${Number(winners[1].amount || 0).toFixed(3)} ◎` : ""}</div>
+              <div class="winner-line">🥉 ${safeName(winners[2])} ${winners[2] ? `— ${Number(winners[2].amount || 0).toFixed(3)} ◎` : ""}</div>
+            </li>
+          `;
+        });
+      } catch (err) {
+        document.getElementById("past-winners").innerHTML =
+          `<li class="history-item muted">Could not load winner history.</li>`;
+      }
+    }
+
+    async function refreshAll() {
+      await loadLeaderboard();
+      await loadHistory();
+    }
+
+    refreshAll();
+    updateCountdown();
 
     const socket = io();
-    socket.on("update", () => loadData());
+    socket.on("update", () => refreshAll());
 
-    setInterval(loadData, 15000);
+    setInterval(refreshAll, 15000);
+    setInterval(updateCountdown, 1000);
   </script>
 </body>
 </html>
