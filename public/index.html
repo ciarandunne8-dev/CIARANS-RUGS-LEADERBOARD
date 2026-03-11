@@ -6,6 +6,10 @@
   <title>Ciaran's Rugs.fun Leaderboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       font-family: 'Press Start 2P', monospace;
       background: #1a1a1a;
@@ -13,13 +17,13 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 24px;
+      padding: 28px 20px 48px;
       margin: 0;
     }
 
     h1 {
       font-size: 24px;
-      margin: 16px 0 28px;
+      margin: 10px 0 28px;
       color: #ffd700;
       text-shadow: 2px 2px #000;
       text-align: center;
@@ -27,52 +31,58 @@
     }
 
     .panel {
-      width: min(950px, 95vw);
+      width: min(1100px, 100%);
       background: #2a2a2a;
       border: 4px solid #555;
-      margin-bottom: 24px;
+      margin-bottom: 26px;
       padding: 18px;
-      box-sizing: border-box;
     }
 
     .panel-title {
       font-size: 14px;
       color: #ffd700;
-      margin-bottom: 16px;
+      margin-bottom: 18px;
       text-align: center;
+      line-height: 1.5;
     }
 
     .competition-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      text-align: center;
+      gap: 14px;
     }
 
     .stat-box {
       background: #1c1c1c;
       border: 2px solid #555;
-      padding: 14px 10px;
+      padding: 18px 14px;
+      text-align: center;
+      min-height: 92px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
 
     .stat-label {
       font-size: 9px;
       color: #cfcfcf;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
+      line-height: 1.6;
     }
 
     .stat-value {
       font-size: 11px;
       color: #ffd700;
-      line-height: 1.6;
+      line-height: 1.7;
     }
 
     .podium {
+      width: min(900px, 100%);
       display: flex;
       justify-content: center;
-      gap: 40px;
-      margin-bottom: 40px;
       align-items: flex-end;
+      gap: 56px;
+      margin: 8px 0 34px;
       flex-wrap: wrap;
     }
 
@@ -80,7 +90,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      width: 140px;
+      width: 150px;
       font-size: 12px;
       text-align: center;
     }
@@ -98,16 +108,20 @@
     }
 
     .medal {
-      font-size: 42px;
-      margin-bottom: 8px;
+      font-size: 46px;
+      margin-bottom: 10px;
       line-height: 1;
       display: inline-block;
       animation: bounce 3s ease-in-out infinite;
     }
 
     @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-10px);
+      }
     }
 
     .gold-glow {
@@ -131,26 +145,29 @@
 
     .podium-user {
       margin-top: 8px;
-      min-height: 20px;
+      min-height: 24px;
+      line-height: 1.6;
     }
 
     .podium-prize {
-      margin-top: 8px;
+      margin-top: 10px;
+      line-height: 1.6;
     }
 
     table {
       border-collapse: collapse;
-      width: min(950px, 95vw);
+      width: min(1100px, 100%);
       background: #2a2a2a;
       border: 4px solid #555;
-      margin-bottom: 24px;
+      margin-bottom: 26px;
     }
 
     th, td {
-      padding: 10px;
+      padding: 12px 10px;
       text-align: center;
       border: 2px solid #555;
       font-size: 10px;
+      line-height: 1.5;
     }
 
     th {
@@ -181,25 +198,37 @@
     }
 
     .bottom-grid {
-      width: min(950px, 95vw);
+      width: min(1100px, 100%);
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 24px;
+      gap: 26px;
+      align-items: start;
+    }
+
+    .bottom-grid .panel {
+      width: 100%;
+      margin-bottom: 0;
+      min-height: 310px;
+      display: flex;
+      flex-direction: column;
     }
 
     .list {
       list-style: none;
       padding: 0;
       margin: 0;
+      width: 100%;
     }
 
     .list-item {
       background: #1c1c1c;
       border: 2px solid #555;
-      padding: 12px;
-      margin-bottom: 10px;
+      padding: 14px 12px;
+      margin-bottom: 12px;
       font-size: 9px;
-      line-height: 1.7;
+      line-height: 1.8;
+      width: 100%;
+      overflow-wrap: break-word;
     }
 
     .muted {
@@ -209,8 +238,8 @@
     .history-buttons {
       display: flex;
       justify-content: center;
-      gap: 10px;
-      margin-bottom: 14px;
+      gap: 12px;
+      margin-bottom: 16px;
       flex-wrap: wrap;
     }
 
@@ -228,22 +257,47 @@
       background: #333;
     }
 
-    @media (max-width: 850px) {
+    @media (max-width: 900px) {
       .competition-grid,
       .bottom-grid {
         grid-template-columns: 1fr;
       }
 
       .podium {
-        gap: 20px;
+        gap: 26px;
       }
 
       .podium-place {
-        width: 110px;
+        width: 120px;
       }
 
       h1 {
         font-size: 18px;
+      }
+
+      .panel-title {
+        font-size: 12px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 20px 12px 36px;
+      }
+
+      th, td {
+        font-size: 8px;
+        padding: 10px 6px;
+      }
+
+      .stat-value,
+      .podium-prize,
+      .podium-user {
+        font-size: 9px;
+      }
+
+      .medal {
+        font-size: 38px;
       }
     }
   </style>
@@ -446,7 +500,9 @@
         return;
       }
 
-      const rows = showAllHistory ? [...cachedHistory].reverse() : [cachedHistory[cachedHistory.length - 1]];
+      const rows = showAllHistory
+        ? [...cachedHistory].reverse()
+        : [cachedHistory[cachedHistory.length - 1]];
 
       rows.forEach((week) => {
         const winners = week.winners || [];
