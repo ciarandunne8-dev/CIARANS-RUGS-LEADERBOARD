@@ -120,7 +120,7 @@ app.post("/webhook", (req, res) => {
 
     const referralFound = eventText.includes("rugsmademebroke");
 
-    if (wallet && amount > 0.001 && referralFound) {
+    if (wallet && amount >= 0.001 && referralFound) {
 
       wagers.push({
         user: wallet,
