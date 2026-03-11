@@ -71,6 +71,20 @@ app.get("/api/history", (req, res) => {
   res.json(history);
 });
 
+app.get("/clear", (req, res) => {
+  const key = req.query.key;
+
+  if (key !== process.env.ADMIN_CLEAR_KEY) {
+    return res.status(403).send("Forbidden");
+  }
+
+  wagers = [];
+  saveWagers();
+  io.emit("update");
+
+  res.send("Leaderboard cleared");
+});
+
 app.post("/webhook", (req, res) => {
   const events = Array.isArray(req.body) ? req.body : [req.body];
 
