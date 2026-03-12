@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Join Ciaran's Rugs.fun Referral</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #1a1a1a;
+      color: #f0f0f0;
+      font-family: 'Press Start 2P', monospace;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+
+    .card {
+      width: min(700px, 92vw);
+      background: #2a2a2a;
+      border: 4px solid #555;
+      padding: 28px;
+    }
+
+    h1 {
+      color: #ffd700;
+      font-size: 20px;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    p {
+      font-size: 10px;
+      line-height: 1.9;
+      color: #d7d7d7;
+      margin-bottom: 24px;
+    }
+
+    .btn {
+      display: inline-block;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 10px;
+      padding: 14px 18px;
+      border: 3px solid #555;
+      background: #1c1c1c;
+      color: #ffd700;
+      cursor: pointer;
+      margin: 8px;
+    }
+
+    .btn:hover {
+      background: #333;
+    }
+
+    .status {
+      margin-top: 18px;
+      font-size: 9px;
+      color: #bdbdbd;
+      line-height: 1.8;
+      min-height: 36px;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Join Ciaran's Rugs.fun Leaderboard</h1>
+    <p>
+      Connect your wallet once, register as referred,
+      then continue to Rugs.fun using Ciaran's referral.
+    </p>
+
+    <button id="connectBtn" class="btn">Connect Wallet</button>
+    <button id="continueBtn" class="btn hidden">Continue to Rugs.fun</button>
+
+    <div id="status" class="status">Waiting for wallet connection...</div>
+  </div>
+
+  <script>
+    let connectedWallet = null;
+
+    const connectBtn = document.getElementById("connectBtn");
+    const continueBtn = document.getElementById("continueBtn");
+    const statusEl = document.getElementById("status");
+
+    async function connectWallet() {
+      try {
+        if (!window.solana || !window.solana.isPhantom) {
+          statusEl.textContent = "Phantom wallet not found. Please install Phantom and try again.";
+          return;
+        }
+
+        const resp = await window.solana.connect();
+        connectedWallet = resp.publicKey.toString();
+
+        statusEl.textContent = `Connected: ${connectedWallet}`;
+
+        await registerReferral(connectedWallet);
+
+        continueBtn.classList.remove("hidden");
+        statusEl.textContent = "Wallet registered successfully. You can now continue to Rugs.fun.";
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Wallet connection failed.";
+      }
+    }
+
+    async function registerReferral(wallet) {
+      const res = await fetch("/register-referral", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          wallet
+        })
+      });
+
+      const data = await res.json();
+      console.log("Registered:", data);
+    }
+
+    connectBtn.addEventListener("click", connectWallet);
+
+    continueBtn.addEventListener("click", () => {
+      window.location.href = "https://rugs.fun/?start=REF_S70NL5XP4O7M";
+    });
+  </script>
+</body>
+</html>

@@ -74,21 +74,61 @@
       font-size: 11px;
       color: #ffd700;
       line-height: 1.7;
+      word-break: break-word;
     }
 
-    .panel-button {
+    .panel-button,
+    .action-btn {
       font-family: 'Press Start 2P', monospace;
       font-size: 9px;
       border: 2px solid #555;
       background: #1c1c1c;
       color: #ffd700;
-      padding: 10px 12px;
+      padding: 12px 14px;
       cursor: pointer;
       width: 100%;
     }
 
-    .panel-button:hover {
+    .panel-button:hover,
+    .action-btn:hover {
       background: #333;
+    }
+
+    .action-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .connect-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr 1fr;
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .connect-box {
+      background: #1c1c1c;
+      border: 2px solid #555;
+      padding: 18px 14px;
+      min-height: 120px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .connect-label {
+      font-size: 9px;
+      color: #cfcfcf;
+      line-height: 1.6;
+    }
+
+    .connect-value {
+      font-size: 10px;
+      color: #ffd700;
+      line-height: 1.8;
+      word-break: break-word;
+      min-height: 32px;
     }
 
     .podium {
@@ -131,31 +171,20 @@
     }
 
     @keyframes bounce {
-      0%, 100% {
-        transform: translateY(0);
-      }
-      50% {
-        transform: translateY(-10px);
-      }
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
     }
 
     .gold-glow {
-      text-shadow:
-        0 0 10px gold,
-        0 0 20px gold,
-        0 0 30px gold;
+      text-shadow: 0 0 10px gold, 0 0 20px gold, 0 0 30px gold;
     }
 
     .silver-glow {
-      text-shadow:
-        0 0 10px #c0c0c0,
-        0 0 20px #c0c0c0;
+      text-shadow: 0 0 10px #c0c0c0, 0 0 20px #c0c0c0;
     }
 
     .bronze-glow {
-      text-shadow:
-        0 0 10px #cd7f32,
-        0 0 20px #cd7f32;
+      text-shadow: 0 0 10px #cd7f32, 0 0 20px #cd7f32;
     }
 
     .podium-user {
@@ -323,9 +352,14 @@
       padding-right: 70px;
     }
 
-    @media (max-width: 900px) {
-      .competition-grid {
+    @media (max-width: 950px) {
+      .competition-grid,
+      .connect-grid {
         grid-template-columns: 1fr 1fr;
+      }
+
+      .connect-grid .connect-box:first-child {
+        grid-column: 1 / -1;
       }
 
       .podium {
@@ -351,7 +385,8 @@
         padding: 20px 12px 36px;
       }
 
-      .competition-grid {
+      .competition-grid,
+      .connect-grid {
         grid-template-columns: 1fr;
       }
 
@@ -362,7 +397,8 @@
 
       .stat-value,
       .podium-prize,
-      .podium-user {
+      .podium-user,
+      .connect-value {
         font-size: 9px;
       }
 
@@ -374,6 +410,24 @@
 </head>
 <body>
   <h1>Ciaran's Rugs.fun Leaderboard</h1>
+
+  <div class="panel">
+    <div class="panel-title">Join Through Ciaran's Referral</div>
+    <div class="connect-grid">
+      <div class="connect-box">
+        <div class="connect-label">
+          Connect your wallet here first so your wagers can be tracked on the leaderboard.
+        </div>
+        <div id="wallet-status" class="connect-value">Not connected</div>
+      </div>
+      <div class="connect-box">
+        <button id="connectBtn" class="action-btn">Connect Wallet</button>
+      </div>
+      <div class="connect-box">
+        <button id="continueBtn" class="action-btn" disabled>Go to Rugs.fun</button>
+      </div>
+    </div>
+  </div>
 
   <div class="panel">
     <div class="panel-title">Weekly Competition</div>
@@ -454,12 +508,12 @@
   <script>
     let cachedHistory = [];
     let showAllHistory = false;
+    let connectedWallet = null;
 
     function getNextReset() {
       const now = new Date();
       const next = new Date(now);
-
-      const day = now.getDay(); // Sunday = 0
+      const day = now.getDay();
       let daysUntilSunday = (7 - day) % 7;
 
       next.setDate(now.getDate() + daysUntilSunday);
@@ -490,6 +544,53 @@
       return entry?.username || entry?.user || "Unknown";
     }
 
+    function shortenWallet(wallet) {
+      if (!wallet) return "Not connected";
+      if (wallet.length < 12) return wallet;
+      return `${wallet.slice(0, 6)}...${wallet.slice(-6)}`;
+    }
+
+    async function registerReferral(wallet) {
+      const res = await fetch("/register-referral", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ wallet })
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to register referral");
+      }
+
+      return res.json();
+    }
+
+    async function connectWallet() {
+      const statusEl = document.getElementById("wallet-status");
+      const continueBtn = document.getElementById("continueBtn");
+
+      try {
+        if (!window.solana || !window.solana.isPhantom) {
+          statusEl.textContent = "Phantom wallet not found";
+          return;
+        }
+
+        statusEl.textContent = "Connecting...";
+
+        const resp = await window.solana.connect();
+        connectedWallet = resp.publicKey.toString();
+
+        await registerReferral(connectedWallet);
+
+        statusEl.textContent = `Registered: ${shortenWallet(connectedWallet)}`;
+        continueBtn.disabled = false;
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Wallet connection failed";
+      }
+    }
+
     async function loadLeaderboard() {
       const res = await fetch("/api/wagers");
       const wagers = await res.json();
@@ -514,7 +615,6 @@
       const sorted = Object.values(totals).sort((a, b) => b.amount - a.amount);
 
       document.getElementById("current-pool").textContent = `${currentPool.toFixed(3)} ◎`;
-
       document.getElementById("first-user").textContent = safeName(sorted[0]);
       document.getElementById("second-user").textContent = safeName(sorted[1]);
       document.getElementById("third-user").textContent = safeName(sorted[2]);
@@ -632,6 +732,8 @@
     const modal = document.getElementById("history-modal");
     const openBtn = document.getElementById("open-history");
     const closeBtn = document.getElementById("close-history");
+    const connectBtn = document.getElementById("connectBtn");
+    const continueBtn = document.getElementById("continueBtn");
 
     openBtn.addEventListener("click", () => {
       modal.classList.add("show");
@@ -645,6 +747,12 @@
       if (e.target === modal) {
         modal.classList.remove("show");
       }
+    });
+
+    connectBtn.addEventListener("click", connectWallet);
+
+    continueBtn.addEventListener("click", () => {
+      window.location.href = "https://rugs.fun/?start=REF_S70NL5XP4O7M";
     });
 
     refreshAll();
