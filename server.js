@@ -13,11 +13,6 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 const MIN_WAGER_SOL = 0.001;
-
-/*
-  This is the Rugs.fun receiving wallet you are monitoring in Helius.
-  Keep this as the wallet all wagers are sent to.
-*/
 const RUGS_WALLET = "8VVe4Lk5veqnsmGzc8UZaue7S9vywBYf4Cgw8LXW7Tg";
 
 app.use(express.json({ limit: "2mb" }));
@@ -106,10 +101,6 @@ function extractAmount(ev) {
   return 0;
 }
 
-/*
-  Register wallet from the website.
-  This is what your index.html calls after someone connects Phantom.
-*/
 app.post("/register-referral", (req, res) => {
   const { wallet, username } = req.body;
 
@@ -125,7 +116,7 @@ app.post("/register-referral", (req, res) => {
 
   saveReferredWallets();
 
-  console.log("Registered referred wallet:", wallet);
+  console.log("REGISTERED REFERRED WALLET:", wallet);
 
   res.json({
     success: true,
@@ -155,7 +146,6 @@ app.get("/health", (req, res) => {
   });
 });
 
-/* secure admin clear leaderboard */
 app.get("/clear", (req, res) => {
   const key = req.query.key;
 
@@ -165,13 +155,11 @@ app.get("/clear", (req, res) => {
 
   wagers = [];
   saveWagers();
-
   io.emit("update");
 
   res.send("Leaderboard cleared");
 });
 
-/* optional secure clear referred wallets */
 app.get("/clear-referred", (req, res) => {
   const key = req.query.key;
 
@@ -185,12 +173,8 @@ app.get("/clear-referred", (req, res) => {
   res.send("Referred wallets cleared");
 });
 
-/*
-  Helius webhook
-  This counts wagers ONLY if the sending wallet was registered on your site first.
-*/
 app.post("/webhook", (req, res) => {
-  console.log("Webhook hit");
+  console.log("=== WEBHOOK HIT ===");
   console.log("Body:", JSON.stringify(req.body, null, 2));
 
   const events = Array.isArray(req.body) ? req.body : [req.body];
@@ -207,12 +191,10 @@ app.post("/webhook", (req, res) => {
     const amount = extractAmount(ev);
     const isReferredWallet = !!referredWallets[wallet];
 
-    console.log("Parsed webhook event:", {
-      wallet,
-      amount,
-      isReferredWallet,
-      tx
-    });
+    console.log("REFERRED WALLETS CURRENTLY SAVED:", Object.keys(referredWallets));
+    console.log("WEBHOOK WALLET:", wallet);
+    console.log("AMOUNT:", amount);
+    console.log("IS REFERRED WALLET:", isReferredWallet);
 
     if (wallet && amount >= MIN_WAGER_SOL && isReferredWallet) {
       wagers.push({
@@ -230,9 +212,9 @@ app.post("/webhook", (req, res) => {
 
       saveWagers();
 
-      console.log("New referred wager detected:", wallet, amount);
+      console.log("NEW REFERRED WAGER DETECTED:", wallet, amount);
     } else {
-      console.log("Wager rejected:", {
+      console.log("WAGER REJECTED:", {
         wallet,
         amount,
         isReferredWallet,
@@ -245,10 +227,6 @@ app.post("/webhook", (req, res) => {
   res.sendStatus(200);
 });
 
-/*
-  Weekly reset
-  Sunday at 12:05 AM
-*/
 cron.schedule("5 0 * * 0", () => {
   console.log("Running weekly leaderboard reset");
 
@@ -270,9 +248,6 @@ cron.schedule("5 0 * * 0", () => {
   io.emit("update");
 });
 
-/*
-  Socket.IO
-*/
 io.on("connection", () => {
   console.log("User connected");
 });
