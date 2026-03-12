@@ -13,6 +13,11 @@ const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
 const MIN_WAGER_SOL = 0.001;
+
+/*
+  Wallet that receives Rugs.fun wagers
+  Keep Helius watching this wallet
+*/
 const RUGS_WALLET = "8VVe4Lk5veqnsmGzc8UZaue7S9vywBYf4Cgw8LXW7Tg";
 
 app.use(express.json({ limit: "2mb" }));
@@ -90,41 +95,40 @@ function extractSignature(ev) {
   return ev.signature || ev.transactionSignature || ev.txHash || null;
 }
 
-function extractWallet(ev) {
-  if (ev.nativeTransfers && Array.isArray(ev.nativeTransfers) && ev.nativeTransfers.length > 0) {
-    const matchingTransfer =
-      ev.nativeTransfers.find(
-        (t) =>
-          t.toUserAccount === RUGS_WALLET &&
-          t.fromUserAccount &&
-          Number(t.amount || 0) > 0
-      ) || ev.nativeTransfers.find((t) => t.fromUserAccount && Number(t.amount || 0) > 0);
+function extractMatchingTransfer(ev) {
+  if (!ev.nativeTransfers || !Array.isArray(ev.nativeTransfers)) return null;
 
-    if (matchingTransfer?.fromUserAccount) {
-      return matchingTransfer.fromUserAccount;
-    }
-  }
+  return (
+    ev.nativeTransfers.find(
+      (t) =>
+        t.toUserAccount === RUGS_WALLET &&
+        t.fromUserAccount &&
+        Number(t.amount || 0) > 0
+    ) ||
+    ev.nativeTransfers.find(
+      (t) => t.fromUserAccount && Number(t.amount || 0) > 0
+    ) ||
+    null
+  );
+}
+
+function extractWallet(ev) {
+  const transfer = extractMatchingTransfer(ev);
+  if (transfer?.fromUserAccount) return transfer.fromUserAccount;
 
   return ev.feePayer || ev.account || ev.wallet || ev.signer || null;
 }
 
 function extractAmount(ev) {
-  if (ev.nativeTransfers && Array.isArray(ev.nativeTransfers) && ev.nativeTransfers.length > 0) {
-    const matchingTransfer =
-      ev.nativeTransfers.find(
-        (t) =>
-          t.toUserAccount === RUGS_WALLET &&
-          Number(t.amount || 0) > 0
-      ) || ev.nativeTransfers.find((t) => Number(t.amount || 0) > 0);
-
-    if (matchingTransfer) {
-      return Number(matchingTransfer.amount || 0) / 1e9;
-    }
-  }
+  const transfer = extractMatchingTransfer(ev);
+  if (transfer) return Number(transfer.amount || 0) / 1e9;
 
   return 0;
 }
 
+/*
+  Optional route if you still want wallet connect registration on your site
+*/
 app.post("/register-referral", (req, res) => {
   const { wallet, username } = req.body;
 
@@ -135,20 +139,21 @@ app.post("/register-referral", (req, res) => {
   referredWallets[wallet] = {
     wallet,
     username: username || null,
-    registeredAt: new Date().toISOString()
+    registeredAt: new Date().toISOString(),
+    source: "site-connect"
   };
 
   saveReferredWallets();
 
   console.log("REGISTERED REFERRED WALLET:", wallet);
 
-  res.json({
-    success: true,
-    wallet
-  });
+  res.json({ success: true, wallet });
 });
 
-/* MANUAL ADMIN ADD */
+/*
+  Manual admin add
+  Use this for wallets you know signed up through your referral
+*/
 app.get("/add-referred", (req, res) => {
   const key = req.query.key;
   const wallet = req.query.wallet;
@@ -165,7 +170,8 @@ app.get("/add-referred", (req, res) => {
   referredWallets[wallet] = {
     wallet,
     username,
-    registeredAt: new Date().toISOString()
+    registeredAt: new Date().toISOString(),
+    source: "manual-admin"
   };
 
   saveReferredWallets();
@@ -224,7 +230,6 @@ app.get("/clear-referred", (req, res) => {
 
 app.post("/webhook", (req, res) => {
   console.log("=== WEBHOOK HIT ===");
-  console.log("Body:", JSON.stringify(req.body, null, 2));
 
   const events = Array.isArray(req.body) ? req.body : [req.body];
 
@@ -250,9 +255,9 @@ app.post("/webhook", (req, res) => {
       wagers.push({
         user: wallet,
         username: referredWallets[wallet]?.username || null,
-        amount: amount,
+        amount,
         createdAt: new Date().toISOString(),
-        tx: tx
+        tx
       });
 
       if (tx) {
@@ -277,6 +282,10 @@ app.post("/webhook", (req, res) => {
   res.sendStatus(200);
 });
 
+/*
+  Weekly reset
+  Sunday 12:05 AM
+*/
 cron.schedule("5 0 * * 0", () => {
   console.log("Running weekly leaderboard reset");
 
