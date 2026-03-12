@@ -91,13 +91,37 @@ function extractSignature(ev) {
 }
 
 function extractWallet(ev) {
+  if (ev.nativeTransfers && Array.isArray(ev.nativeTransfers) && ev.nativeTransfers.length > 0) {
+    const matchingTransfer =
+      ev.nativeTransfers.find(
+        (t) =>
+          t.toUserAccount === RUGS_WALLET &&
+          t.fromUserAccount &&
+          Number(t.amount || 0) > 0
+      ) || ev.nativeTransfers.find((t) => t.fromUserAccount && Number(t.amount || 0) > 0);
+
+    if (matchingTransfer?.fromUserAccount) {
+      return matchingTransfer.fromUserAccount;
+    }
+  }
+
   return ev.feePayer || ev.account || ev.wallet || ev.signer || null;
 }
 
 function extractAmount(ev) {
   if (ev.nativeTransfers && Array.isArray(ev.nativeTransfers) && ev.nativeTransfers.length > 0) {
-    return Number(ev.nativeTransfers[0].amount || 0) / 1e9;
+    const matchingTransfer =
+      ev.nativeTransfers.find(
+        (t) =>
+          t.toUserAccount === RUGS_WALLET &&
+          Number(t.amount || 0) > 0
+      ) || ev.nativeTransfers.find((t) => Number(t.amount || 0) > 0);
+
+    if (matchingTransfer) {
+      return Number(matchingTransfer.amount || 0) / 1e9;
+    }
   }
+
   return 0;
 }
 
@@ -195,6 +219,7 @@ app.post("/webhook", (req, res) => {
     console.log("WEBHOOK WALLET:", wallet);
     console.log("AMOUNT:", amount);
     console.log("IS REFERRED WALLET:", isReferredWallet);
+    console.log("TX:", tx);
 
     if (wallet && amount >= MIN_WAGER_SOL && isReferredWallet) {
       wagers.push({
