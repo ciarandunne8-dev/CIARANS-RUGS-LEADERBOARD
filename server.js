@@ -15,8 +15,8 @@ const PORT = process.env.PORT || 3000;
 const MIN_WAGER_SOL = 0.001;
 
 /*
-  Rugs.fun receiving wallet
-  Helius should monitor this wallet
+  This is the Rugs.fun receiving wallet you are monitoring in Helius.
+  Keep this as the wallet all wagers are sent to.
 */
 const RUGS_WALLET = "8VVe4Lk5veqnsmGzc8UZaue7S9vywBYf4Cgw8LXW7Tg";
 
@@ -107,8 +107,8 @@ function extractAmount(ev) {
 }
 
 /*
-  Register a wallet as referred
-  You can call this from your website / landing page
+  Register wallet from the website.
+  This is what your index.html calls after someone connects Phantom.
 */
 app.post("/register-referral", (req, res) => {
   const { wallet, username } = req.body;
@@ -125,7 +125,12 @@ app.post("/register-referral", (req, res) => {
 
   saveReferredWallets();
 
-  res.json({ success: true, wallet });
+  console.log("Registered referred wallet:", wallet);
+
+  res.json({
+    success: true,
+    wallet
+  });
 });
 
 app.get("/api/referred-wallets", (req, res) => {
@@ -145,10 +150,12 @@ app.get("/health", (req, res) => {
     ok: true,
     wagers: wagers.length,
     historyWeeks: history.length,
-    referredWallets: Object.keys(referredWallets).length
+    referredWallets: Object.keys(referredWallets).length,
+    rugsWallet: RUGS_WALLET
   });
 });
 
+/* secure admin clear leaderboard */
 app.get("/clear", (req, res) => {
   const key = req.query.key;
 
@@ -164,9 +171,7 @@ app.get("/clear", (req, res) => {
   res.send("Leaderboard cleared");
 });
 
-/*
-  Optional admin route to clear referred wallets
-*/
+/* optional secure clear referred wallets */
 app.get("/clear-referred", (req, res) => {
   const key = req.query.key;
 
@@ -182,7 +187,7 @@ app.get("/clear-referred", (req, res) => {
 
 /*
   Helius webhook
-  Count wager ONLY if sender wallet is already registered as referred
+  This counts wagers ONLY if the sending wallet was registered on your site first.
 */
 app.post("/webhook", (req, res) => {
   console.log("Webhook hit");
@@ -200,7 +205,6 @@ app.post("/webhook", (req, res) => {
 
     const wallet = extractWallet(ev);
     const amount = extractAmount(ev);
-
     const isReferredWallet = !!referredWallets[wallet];
 
     console.log("Parsed webhook event:", {
@@ -243,7 +247,7 @@ app.post("/webhook", (req, res) => {
 
 /*
   Weekly reset
-  Sunday 12:05 AM
+  Sunday at 12:05 AM
 */
 cron.schedule("5 0 * * 0", () => {
   console.log("Running weekly leaderboard reset");
@@ -252,7 +256,7 @@ cron.schedule("5 0 * * 0", () => {
 
   history.push({
     date: new Date().toISOString(),
-    winners: winners
+    winners
   });
 
   saveHistory();
@@ -266,6 +270,9 @@ cron.schedule("5 0 * * 0", () => {
   io.emit("update");
 });
 
+/*
+  Socket.IO
+*/
 io.on("connection", () => {
   console.log("User connected");
 });
