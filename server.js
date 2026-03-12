@@ -148,6 +148,31 @@ app.post("/register-referral", (req, res) => {
   });
 });
 
+/* MANUAL ADMIN ADD */
+app.get("/add-referred", (req, res) => {
+  const key = req.query.key;
+  const wallet = req.query.wallet;
+  const username = req.query.username || null;
+
+  if (key !== process.env.ADMIN_CLEAR_KEY) {
+    return res.status(403).send("Forbidden");
+  }
+
+  if (!wallet) {
+    return res.status(400).send("wallet is required");
+  }
+
+  referredWallets[wallet] = {
+    wallet,
+    username,
+    registeredAt: new Date().toISOString()
+  };
+
+  saveReferredWallets();
+
+  res.send(`Added referred wallet: ${wallet}`);
+});
+
 app.get("/api/referred-wallets", (req, res) => {
   res.json(referredWallets);
 });
