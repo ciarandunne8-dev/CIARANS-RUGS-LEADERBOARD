@@ -6,9 +6,7 @@
   <title>Ciaran's Rugs.fun Leaderboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       font-family: 'Press Start 2P', monospace;
@@ -28,6 +26,29 @@
       text-shadow: 2px 2px #000;
       text-align: center;
       line-height: 1.4;
+    }
+
+    .top-actions {
+      width: min(1100px, 100%);
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 14px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .tiny-btn, .panel-button, .admin-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 9px;
+      border: 2px solid #555;
+      background: #1c1c1c;
+      color: #ffd700;
+      padding: 12px 14px;
+      cursor: pointer;
+    }
+
+    .tiny-btn:hover, .panel-button:hover, .admin-btn:hover {
+      background: #333;
     }
 
     .panel {
@@ -77,60 +98,6 @@
       word-break: break-word;
     }
 
-    .panel-button,
-    .action-btn {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 9px;
-      border: 2px solid #555;
-      background: #1c1c1c;
-      color: #ffd700;
-      padding: 12px 14px;
-      cursor: pointer;
-      width: 100%;
-    }
-
-    .panel-button:hover,
-    .action-btn:hover {
-      background: #333;
-    }
-
-    .action-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .connect-grid {
-      display: grid;
-      grid-template-columns: 1.1fr 1fr 1fr;
-      gap: 14px;
-      align-items: stretch;
-    }
-
-    .connect-box {
-      background: #1c1c1c;
-      border: 2px solid #555;
-      padding: 18px 14px;
-      min-height: 120px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 12px;
-    }
-
-    .connect-label {
-      font-size: 9px;
-      color: #cfcfcf;
-      line-height: 1.6;
-    }
-
-    .connect-value {
-      font-size: 10px;
-      color: #ffd700;
-      line-height: 1.8;
-      word-break: break-word;
-      min-height: 32px;
-    }
-
     .podium {
       width: min(900px, 100%);
       display: flex;
@@ -150,17 +117,9 @@
       text-align: center;
     }
 
-    .first {
-      transform: translateY(-20px);
-    }
-
-    .second {
-      transform: translateY(0);
-    }
-
-    .third {
-      transform: translateY(10px);
-    }
+    .first { transform: translateY(-20px); }
+    .second { transform: translateY(0); }
+    .third { transform: translateY(10px); }
 
     .medal {
       font-size: 46px;
@@ -175,17 +134,9 @@
       50% { transform: translateY(-10px); }
     }
 
-    .gold-glow {
-      text-shadow: 0 0 10px gold, 0 0 20px gold, 0 0 30px gold;
-    }
-
-    .silver-glow {
-      text-shadow: 0 0 10px #c0c0c0, 0 0 20px #c0c0c0;
-    }
-
-    .bronze-glow {
-      text-shadow: 0 0 10px #cd7f32, 0 0 20px #cd7f32;
-    }
+    .gold-glow { text-shadow: 0 0 10px gold, 0 0 20px gold, 0 0 30px gold; }
+    .silver-glow { text-shadow: 0 0 10px #c0c0c0, 0 0 20px #c0c0c0; }
+    .bronze-glow { text-shadow: 0 0 10px #cd7f32, 0 0 20px #cd7f32; }
 
     .podium-user {
       margin-top: 8px;
@@ -237,24 +188,11 @@
       font-weight: bold;
     }
 
-    tr:hover {
-      background: #444;
-    }
-
-    .bottom-grid {
+    .feed-panel {
       width: min(1100px, 100%);
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 26px;
-      align-items: start;
-    }
-
-    .bottom-grid .panel {
-      width: 100%;
-      margin-bottom: 0;
-      min-height: 250px;
-      display: flex;
-      flex-direction: column;
+      background: #2a2a2a;
+      border: 4px solid #555;
+      padding: 18px;
     }
 
     .list {
@@ -275,37 +213,11 @@
       overflow-wrap: break-word;
     }
 
-    .muted {
-      color: #bdbdbd;
-    }
-
-    .history-buttons {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-    }
-
-    .history-btn {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 9px;
-      border: 2px solid #555;
-      background: #1c1c1c;
-      color: #ffd700;
-      padding: 10px 12px;
-      cursor: pointer;
-    }
-
-    .history-btn.active {
-      background: #333;
-    }
-
     .modal {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.78);
+      background: rgba(0, 0, 0, 0.82);
       z-index: 999;
       justify-content: center;
       align-items: center;
@@ -317,30 +229,13 @@
     }
 
     .modal-content {
-      width: min(900px, 100%);
-      max-height: 85vh;
+      width: min(980px, 100%);
+      max-height: 88vh;
       overflow-y: auto;
       background: #2a2a2a;
       border: 4px solid #555;
       padding: 18px;
       position: relative;
-    }
-
-    .modal-close {
-      position: absolute;
-      top: 14px;
-      right: 14px;
-      font-family: 'Press Start 2P', monospace;
-      font-size: 10px;
-      border: 2px solid #555;
-      background: #1c1c1c;
-      color: #ffd700;
-      padding: 8px 10px;
-      cursor: pointer;
-    }
-
-    .modal-close:hover {
-      background: #333;
     }
 
     .modal-title {
@@ -349,57 +244,76 @@
       color: #ffd700;
       margin-bottom: 20px;
       line-height: 1.5;
-      padding-right: 70px;
+      padding-right: 80px;
     }
 
-    @media (max-width: 950px) {
-      .competition-grid,
-      .connect-grid {
+    .modal-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      font-size: 9px;
+    }
+
+    .admin-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .admin-box {
+      background: #1c1c1c;
+      border: 2px solid #555;
+      padding: 14px;
+    }
+
+    .admin-box label {
+      display: block;
+      font-size: 9px;
+      margin-bottom: 10px;
+      color: #cfcfcf;
+      line-height: 1.6;
+    }
+
+    .admin-box input {
+      width: 100%;
+      background: #111;
+      color: #ffd700;
+      border: 2px solid #555;
+      padding: 10px;
+      font-family: inherit;
+      font-size: 9px;
+    }
+
+    .admin-actions {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .admin-status {
+      font-size: 9px;
+      color: #bdbdbd;
+      line-height: 1.8;
+      min-height: 18px;
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .competition-grid, .admin-grid, .admin-actions {
         grid-template-columns: 1fr 1fr;
-      }
-
-      .connect-grid .connect-box:first-child {
-        grid-column: 1 / -1;
-      }
-
-      .podium {
-        gap: 26px;
-      }
-
-      .podium-place {
-        width: 120px;
-      }
-
-      h1 {
-        font-size: 18px;
-      }
-
-      .panel-title,
-      .modal-title {
-        font-size: 12px;
       }
     }
 
     @media (max-width: 600px) {
-      body {
-        padding: 20px 12px 36px;
-      }
-
-      .competition-grid,
-      .connect-grid {
+      .competition-grid, .admin-grid, .admin-actions {
         grid-template-columns: 1fr;
       }
 
       th, td {
         font-size: 8px;
         padding: 10px 6px;
-      }
-
-      .stat-value,
-      .podium-prize,
-      .podium-user,
-      .connect-value {
-        font-size: 9px;
       }
 
       .medal {
@@ -409,25 +323,11 @@
   </style>
 </head>
 <body>
-  <h1>Ciaran's Rugs.fun Leaderboard</h1>
-
-  <div class="panel">
-    <div class="panel-title">Join Through Ciaran's Referral</div>
-    <div class="connect-grid">
-      <div class="connect-box">
-        <div class="connect-label">
-          Connect your wallet here first so your wagers can be tracked on the leaderboard.
-        </div>
-        <div id="wallet-status" class="connect-value">Not connected</div>
-      </div>
-      <div class="connect-box">
-        <button id="connectBtn" class="action-btn">Connect Wallet</button>
-      </div>
-      <div class="connect-box">
-        <button id="continueBtn" class="action-btn" disabled>Go to Rugs.fun</button>
-      </div>
-    </div>
+  <div class="top-actions">
+    <button id="open-admin" class="tiny-btn">Admin</button>
   </div>
+
+  <h1>Ciaran's Rugs.fun Leaderboard</h1>
 
   <div class="panel">
     <div class="panel-title">Weekly Competition</div>
@@ -445,8 +345,8 @@
         <div class="stat-value" id="current-pool">0.000 ◎</div>
       </div>
       <div class="stat-box">
-        <div class="stat-label">Past Winners</div>
-        <button id="open-history" class="panel-button">Open Panel</button>
+        <div class="stat-label">Top Prize</div>
+        <div class="stat-value">0.8 SOL</div>
       </div>
     </div>
   </div>
@@ -483,33 +383,48 @@
     <tbody id="leaderboard"></tbody>
   </table>
 
-  <div class="bottom-grid">
-    <div class="panel">
-      <div class="panel-title">Live Wager Feed</div>
-      <ul id="live-feed" class="list"></ul>
-    </div>
+  <div class="feed-panel">
+    <div class="panel-title">Live Wager Feed</div>
+    <ul id="live-feed" class="list"></ul>
   </div>
 
-  <div id="history-modal" class="modal">
+  <div id="admin-modal" class="modal">
     <div class="modal-content">
-      <button id="close-history" class="modal-close">Close</button>
-      <div class="modal-title">Past Winners</div>
+      <button id="close-admin" class="tiny-btn modal-close">Close</button>
+      <div class="modal-title">Admin Leaderboard Editor</div>
 
-      <div class="history-buttons">
-        <button id="show-recent" class="history-btn active">Most Recent</button>
-        <button id="show-all" class="history-btn">Show All</button>
+      <div class="admin-grid">
+        <div class="admin-box">
+          <label>Admin Key</label>
+          <input id="admin-key" type="password" placeholder="Enter admin key">
+        </div>
+        <div class="admin-box">
+          <label>Wallet</label>
+          <input id="admin-wallet" type="text" placeholder="Wallet address">
+        </div>
+        <div class="admin-box">
+          <label>Name</label>
+          <input id="admin-name" type="text" placeholder="Display name">
+        </div>
+        <div class="admin-box">
+          <label>Amount (SOL)</label>
+          <input id="admin-amount" type="number" step="0.001" placeholder="0.000">
+        </div>
       </div>
 
-      <ul id="past-winners" class="list"></ul>
+      <div class="admin-actions">
+        <button class="admin-btn" id="add-player-btn">Add Amount</button>
+        <button class="admin-btn" id="set-player-btn">Set Exact Amount</button>
+        <button class="admin-btn" id="delete-player-btn">Delete Player</button>
+        <button class="admin-btn" id="reset-week-btn">Reset Week</button>
+      </div>
+
+      <div id="admin-status" class="admin-status"></div>
     </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    let cachedHistory = [];
-    let showAllHistory = false;
-    let connectedWallet = null;
-
     function getNextReset() {
       const now = new Date();
       const next = new Date(now);
@@ -540,228 +455,179 @@
         `${days}d ${hours}h ${minutes}m ${seconds}s`;
     }
 
-    function safeName(entry) {
-      return entry?.username || entry?.user || "Unknown";
-    }
-
     function shortenWallet(wallet) {
-      if (!wallet) return "Not connected";
+      if (!wallet) return "Unknown";
       if (wallet.length < 12) return wallet;
       return `${wallet.slice(0, 6)}...${wallet.slice(-6)}`;
     }
 
-    async function registerReferral(wallet) {
-      const res = await fetch("/register-referral", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ wallet })
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to register referral");
-      }
-
-      return res.json();
-    }
-
-    async function connectWallet() {
-      const statusEl = document.getElementById("wallet-status");
-      const continueBtn = document.getElementById("continueBtn");
-
-      try {
-        if (!window.solana || !window.solana.isPhantom) {
-          statusEl.textContent = "Phantom wallet not found";
-          return;
-        }
-
-        statusEl.textContent = "Connecting...";
-
-        const resp = await window.solana.connect();
-        connectedWallet = resp.publicKey.toString();
-
-        await registerReferral(connectedWallet);
-
-        statusEl.textContent = `Registered: ${shortenWallet(connectedWallet)}`;
-        continueBtn.disabled = false;
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = "Wallet connection failed";
-      }
+    function displayName(entry) {
+      return entry?.username || shortenWallet(entry?.user);
     }
 
     async function loadLeaderboard() {
       const res = await fetch("/api/wagers");
-      const wagers = await res.json();
+      const data = await res.json();
 
-      const totals = {};
-      let currentPool = 0;
-
-      wagers.forEach((w) => {
-        currentPool += Number(w.amount || 0);
-
-        if (!totals[w.user]) {
-          totals[w.user] = {
-            user: w.user,
-            username: w.username,
-            amount: 0
-          };
-        }
-
-        totals[w.user].amount += Number(w.amount || 0);
-      });
-
-      const sorted = Object.values(totals).sort((a, b) => b.amount - a.amount);
+      const totals = [...data].sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0));
+      const currentPool = totals.reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
 
       document.getElementById("current-pool").textContent = `${currentPool.toFixed(3)} ◎`;
-      document.getElementById("first-user").textContent = safeName(sorted[0]);
-      document.getElementById("second-user").textContent = safeName(sorted[1]);
-      document.getElementById("third-user").textContent = safeName(sorted[2]);
+      document.getElementById("first-user").textContent = displayName(totals[0]);
+      document.getElementById("second-user").textContent = displayName(totals[1]);
+      document.getElementById("third-user").textContent = displayName(totals[2]);
 
       const tbody = document.getElementById("leaderboard");
       tbody.innerHTML = "";
 
-      sorted.forEach((entry, i) => {
+      totals.forEach((entry, i) => {
         let prize = "";
         let rowClass = "";
 
-        if (i === 0) {
-          prize = "0.8 SOL";
-          rowClass = "gold";
-        } else if (i === 1) {
-          prize = "0.4 SOL";
-          rowClass = "silver";
-        } else if (i === 2) {
-          prize = "0.3 SOL";
-          rowClass = "bronze";
-        }
+        if (i === 0) { prize = "0.8 SOL"; rowClass = "gold"; }
+        else if (i === 1) { prize = "0.4 SOL"; rowClass = "silver"; }
+        else if (i === 2) { prize = "0.3 SOL"; rowClass = "bronze"; }
 
         tbody.innerHTML += `
           <tr class="${rowClass}">
             <td>${i + 1}</td>
-            <td>${safeName(entry)}</td>
-            <td>${entry.amount.toFixed(3)} ◎</td>
+            <td>${displayName(entry)}</td>
+            <td>${Number(entry.amount || 0).toFixed(3)} ◎</td>
             <td>${prize}</td>
           </tr>
         `;
       });
 
-      renderLiveFeed(wagers);
+      renderFeed(totals);
     }
 
-    function renderLiveFeed(wagers) {
+    function renderFeed(entries) {
       const feed = document.getElementById("live-feed");
       feed.innerHTML = "";
 
-      const latest = [...wagers].slice(-8).reverse();
+      const latest = [...entries].slice(0, 8);
 
-      if (latest.length === 0) {
-        feed.innerHTML = `<li class="list-item muted">No wagers yet.</li>`;
+      if (!latest.length) {
+        feed.innerHTML = `<li class="list-item">No wagers yet.</li>`;
         return;
       }
 
-      latest.forEach((w) => {
+      latest.forEach((entry) => {
         feed.innerHTML += `
           <li class="list-item">
-            <div><strong>${safeName(w)}</strong></div>
-            <div>${Number(w.amount || 0).toFixed(3)} ◎ wagered</div>
+            <div><strong>${displayName(entry)}</strong></div>
+            <div>${Number(entry.amount || 0).toFixed(3)} ◎ total wagered</div>
           </li>
         `;
       });
     }
 
-    function renderHistory() {
-      const historyList = document.getElementById("past-winners");
-      historyList.innerHTML = "";
+    function adminValues() {
+      return {
+        key: document.getElementById("admin-key").value.trim(),
+        wallet: document.getElementById("admin-wallet").value.trim(),
+        username: document.getElementById("admin-name").value.trim(),
+        amount: document.getElementById("admin-amount").value.trim()
+      };
+    }
 
-      if (!cachedHistory.length) {
-        historyList.innerHTML = `<li class="list-item muted">No previous winners yet.</li>`;
-        return;
+    function setAdminStatus(text) {
+      document.getElementById("admin-status").textContent = text;
+    }
+
+    async function adminPost(url, body) {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || "Request failed");
       }
 
-      const rows = showAllHistory
-        ? [...cachedHistory].reverse()
-        : [cachedHistory[cachedHistory.length - 1]];
-
-      rows.forEach((week) => {
-        const winners = week.winners || [];
-        const dateText = week.date ? new Date(week.date).toLocaleDateString() : "Previous Week";
-
-        historyList.innerHTML += `
-          <li class="list-item">
-            <div><strong>${dateText}</strong></div>
-            <div>🥇 ${safeName(winners[0])}${winners[0] ? ` — ${Number(winners[0].amount || 0).toFixed(3)} ◎` : ""}</div>
-            <div>🥈 ${safeName(winners[1])}${winners[1] ? ` — ${Number(winners[1].amount || 0).toFixed(3)} ◎` : ""}</div>
-            <div>🥉 ${safeName(winners[2])}${winners[2] ? ` — ${Number(winners[2].amount || 0).toFixed(3)} ◎` : ""}</div>
-          </li>
-        `;
-      });
+      return data;
     }
 
-    async function loadHistory() {
+    async function addPlayer() {
       try {
-        const res = await fetch("/api/history");
-        cachedHistory = await res.json();
-        renderHistory();
+        const { key, wallet, username, amount } = adminValues();
+        await adminPost("/admin/add-player", {
+          key,
+          wallet,
+          username,
+          amount: Number(amount)
+        });
+        setAdminStatus("Player amount added.");
+        await loadLeaderboard();
       } catch (err) {
-        document.getElementById("past-winners").innerHTML =
-          `<li class="list-item muted">Could not load winner history.</li>`;
+        setAdminStatus(err.message);
       }
     }
 
-    async function refreshAll() {
-      await loadLeaderboard();
-      await loadHistory();
+    async function setPlayer() {
+      try {
+        const { key, wallet, username, amount } = adminValues();
+        await adminPost("/admin/set-player", {
+          key,
+          wallet,
+          username,
+          amount: Number(amount)
+        });
+        setAdminStatus("Player updated.");
+        await loadLeaderboard();
+      } catch (err) {
+        setAdminStatus(err.message);
+      }
     }
 
-    document.getElementById("show-recent").addEventListener("click", () => {
-      showAllHistory = false;
-      document.getElementById("show-recent").classList.add("active");
-      document.getElementById("show-all").classList.remove("active");
-      renderHistory();
-    });
-
-    document.getElementById("show-all").addEventListener("click", () => {
-      showAllHistory = true;
-      document.getElementById("show-all").classList.add("active");
-      document.getElementById("show-recent").classList.remove("active");
-      renderHistory();
-    });
-
-    const modal = document.getElementById("history-modal");
-    const openBtn = document.getElementById("open-history");
-    const closeBtn = document.getElementById("close-history");
-    const connectBtn = document.getElementById("connectBtn");
-    const continueBtn = document.getElementById("continueBtn");
-
-    openBtn.addEventListener("click", () => {
-      modal.classList.add("show");
-    });
-
-    closeBtn.addEventListener("click", () => {
-      modal.classList.remove("show");
-    });
-
-    modal.addEventListener("click", (e) => {
-      if (e.target === modal) {
-        modal.classList.remove("show");
+    async function deletePlayer() {
+      try {
+        const { key, wallet } = adminValues();
+        await adminPost("/admin/delete-player", { key, wallet });
+        setAdminStatus("Player deleted.");
+        await loadLeaderboard();
+      } catch (err) {
+        setAdminStatus(err.message);
       }
+    }
+
+    async function resetWeek() {
+      try {
+        const { key } = adminValues();
+        await adminPost("/admin/reset-week", { key });
+        setAdminStatus("Week reset and winners saved.");
+        await loadLeaderboard();
+      } catch (err) {
+        setAdminStatus(err.message);
+      }
+    }
+
+    const adminModal = document.getElementById("admin-modal");
+    document.getElementById("open-admin").addEventListener("click", () => {
+      adminModal.classList.add("show");
+    });
+    document.getElementById("close-admin").addEventListener("click", () => {
+      adminModal.classList.remove("show");
+    });
+    adminModal.addEventListener("click", (e) => {
+      if (e.target === adminModal) adminModal.classList.remove("show");
     });
 
-    connectBtn.addEventListener("click", connectWallet);
+    document.getElementById("add-player-btn").addEventListener("click", addPlayer);
+    document.getElementById("set-player-btn").addEventListener("click", setPlayer);
+    document.getElementById("delete-player-btn").addEventListener("click", deletePlayer);
+    document.getElementById("reset-week-btn").addEventListener("click", resetWeek);
 
-    continueBtn.addEventListener("click", () => {
-      window.location.href = "https://rugs.fun/?start=REF_S70NL5XP4O7M";
-    });
-
-    refreshAll();
     updateCountdown();
+    loadLeaderboard();
 
     const socket = io();
-    socket.on("update", () => refreshAll());
+    socket.on("update", () => loadLeaderboard());
 
-    setInterval(refreshAll, 15000);
+    setInterval(loadLeaderboard, 15000);
     setInterval(updateCountdown, 1000);
   </script>
 </body>

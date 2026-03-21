@@ -3,7 +3,6 @@ require("dotenv").config();
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-const cron = require("node-cron");
 const fs = require("fs-extra");
 const path = require("path");
 
@@ -12,179 +11,55 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const PORT = process.env.PORT || 3000;
-const MIN_WAGER_SOL = 0.001;
-
-/*
-  Wallet that receives Rugs.fun wagers
-  Keep Helius watching this wallet
-*/
-const RUGS_WALLET = "8VVe4Lk5veqnsmGzc8UZaue7S9vywBYf4Cgw8LXW7Tg";
 
 app.use(express.json({ limit: "2mb" }));
 app.use(express.static("public"));
 
 const DATA_DIR = path.join(__dirname, "data");
-const WAGERS_FILE = path.join(DATA_DIR, "wagers.json");
+const LEADERBOARD_FILE = path.join(DATA_DIR, "manualLeaderboard.json");
 const HISTORY_FILE = path.join(DATA_DIR, "history.json");
-const PROCESSED_FILE = path.join(DATA_DIR, "processedTx.json");
-const REFERRED_FILE = path.join(DATA_DIR, "referredWallets.json");
 
-let wagers = [];
+let leaderboard = [];
 let history = [];
-let processedTx = new Set();
-let referredWallets = {};
 
 fs.ensureDirSync(DATA_DIR);
 
-if (fs.existsSync(WAGERS_FILE)) {
-  wagers = fs.readJsonSync(WAGERS_FILE);
+if (fs.existsSync(LEADERBOARD_FILE)) {
+  leaderboard = fs.readJsonSync(LEADERBOARD_FILE);
 }
 
 if (fs.existsSync(HISTORY_FILE)) {
   history = fs.readJsonSync(HISTORY_FILE);
 }
 
-if (fs.existsSync(PROCESSED_FILE)) {
-  const savedProcessed = fs.readJsonSync(PROCESSED_FILE);
-  processedTx = new Set(Array.isArray(savedProcessed) ? savedProcessed : []);
-}
-
-if (fs.existsSync(REFERRED_FILE)) {
-  referredWallets = fs.readJsonSync(REFERRED_FILE);
-}
-
-function saveWagers() {
-  fs.writeJsonSync(WAGERS_FILE, wagers, { spaces: 2 });
+function saveLeaderboard() {
+  fs.writeJsonSync(LEADERBOARD_FILE, leaderboard, { spaces: 2 });
 }
 
 function saveHistory() {
   fs.writeJsonSync(HISTORY_FILE, history, { spaces: 2 });
 }
 
-function saveProcessedTx() {
-  fs.writeJsonSync(PROCESSED_FILE, Array.from(processedTx), { spaces: 2 });
+function sortLeaderboard() {
+  leaderboard.sort((a, b) => Number(b.amount || 0) - Number(a.amount || 0));
 }
 
-function saveReferredWallets() {
-  fs.writeJsonSync(REFERRED_FILE, referredWallets, { spaces: 2 });
-}
-
-function getLeaderboardTotals() {
-  const totals = {};
-
-  wagers.forEach((w) => {
-    if (!totals[w.user]) {
-      totals[w.user] = {
-        user: w.user,
-        username: w.username || null,
-        amount: 0
-      };
-    }
-
-    totals[w.user].amount += Number(w.amount || 0);
-
-    if (w.username) {
-      totals[w.user].username = w.username;
-    }
-  });
-
-  return Object.values(totals).sort((a, b) => b.amount - a.amount);
-}
-
-function extractSignature(ev) {
-  return ev.signature || ev.transactionSignature || ev.txHash || null;
-}
-
-function extractMatchingTransfer(ev) {
-  if (!ev.nativeTransfers || !Array.isArray(ev.nativeTransfers)) return null;
-
-  return (
-    ev.nativeTransfers.find(
-      (t) =>
-        t.toUserAccount === RUGS_WALLET &&
-        t.fromUserAccount &&
-        Number(t.amount || 0) > 0
-    ) ||
-    ev.nativeTransfers.find(
-      (t) => t.fromUserAccount && Number(t.amount || 0) > 0
-    ) ||
-    null
-  );
-}
-
-function extractWallet(ev) {
-  const transfer = extractMatchingTransfer(ev);
-  if (transfer?.fromUserAccount) return transfer.fromUserAccount;
-
-  return ev.feePayer || ev.account || ev.wallet || ev.signer || null;
-}
-
-function extractAmount(ev) {
-  const transfer = extractMatchingTransfer(ev);
-  if (transfer) return Number(transfer.amount || 0) / 1e9;
-
-  return 0;
-}
-
-/*
-  Optional route if you still want wallet connect registration on your site
-*/
-app.post("/register-referral", (req, res) => {
-  const { wallet, username } = req.body;
-
-  if (!wallet) {
-    return res.status(400).json({ error: "wallet is required" });
-  }
-
-  referredWallets[wallet] = {
-    wallet,
-    username: username || null,
-    registeredAt: new Date().toISOString(),
-    source: "site-connect"
-  };
-
-  saveReferredWallets();
-
-  console.log("REGISTERED REFERRED WALLET:", wallet);
-
-  res.json({ success: true, wallet });
-});
-
-/*
-  Manual admin add
-  Use this for wallets you know signed up through your referral
-*/
-app.get("/add-referred", (req, res) => {
-  const key = req.query.key;
-  const wallet = req.query.wallet;
-  const username = req.query.username || null;
+function requireAdminKey(req, res) {
+  const key = req.body?.key || req.query?.key;
 
   if (key !== process.env.ADMIN_CLEAR_KEY) {
-    return res.status(403).send("Forbidden");
+    res.status(403).json({ error: "Forbidden" });
+    return false;
   }
 
-  if (!wallet) {
-    return res.status(400).send("wallet is required");
-  }
+  return true;
+}
 
-  referredWallets[wallet] = {
-    wallet,
-    username,
-    registeredAt: new Date().toISOString(),
-    source: "manual-admin"
-  };
-
-  saveReferredWallets();
-
-  res.send(`Added referred wallet: ${wallet}`);
-});
-
-app.get("/api/referred-wallets", (req, res) => {
-  res.json(referredWallets);
-});
+/* PUBLIC API */
 
 app.get("/api/wagers", (req, res) => {
-  res.json(wagers);
+  sortLeaderboard();
+  res.json(leaderboard);
 });
 
 app.get("/api/history", (req, res) => {
@@ -194,102 +69,99 @@ app.get("/api/history", (req, res) => {
 app.get("/health", (req, res) => {
   res.json({
     ok: true,
-    wagers: wagers.length,
-    historyWeeks: history.length,
-    referredWallets: Object.keys(referredWallets).length,
-    rugsWallet: RUGS_WALLET
+    entries: leaderboard.length,
+    historyWeeks: history.length
   });
 });
 
-app.get("/clear", (req, res) => {
-  const key = req.query.key;
+/* ADMIN API */
 
-  if (key !== process.env.ADMIN_CLEAR_KEY) {
-    return res.status(403).send("Forbidden");
+app.post("/admin/add-player", (req, res) => {
+  if (!requireAdminKey(req, res)) return;
+
+  const { wallet, username, amount } = req.body;
+
+  if (!wallet || amount === undefined || Number.isNaN(Number(amount))) {
+    return res.status(400).json({ error: "wallet and valid amount are required" });
   }
 
-  wagers = [];
-  saveWagers();
-  io.emit("update");
+  const existing = leaderboard.find((p) => p.user === wallet);
 
-  res.send("Leaderboard cleared");
-});
-
-app.get("/clear-referred", (req, res) => {
-  const key = req.query.key;
-
-  if (key !== process.env.ADMIN_CLEAR_KEY) {
-    return res.status(403).send("Forbidden");
+  if (existing) {
+    existing.username = username || existing.username || null;
+    existing.amount = Number(existing.amount || 0) + Number(amount || 0);
+  } else {
+    leaderboard.push({
+      user: wallet,
+      username: username || null,
+      amount: Number(amount || 0),
+      createdAt: new Date().toISOString()
+    });
   }
 
-  referredWallets = {};
-  saveReferredWallets();
-
-  res.send("Referred wallets cleared");
-});
-
-app.post("/webhook", (req, res) => {
-  console.log("=== WEBHOOK HIT ===");
-
-  const events = Array.isArray(req.body) ? req.body : [req.body];
-
-  events.forEach((ev) => {
-    const tx = extractSignature(ev);
-
-    if (tx && processedTx.has(tx)) {
-      console.log("Skipped duplicate tx:", tx);
-      return;
-    }
-
-    const wallet = extractWallet(ev);
-    const amount = extractAmount(ev);
-    const isReferredWallet = !!referredWallets[wallet];
-
-    console.log("REFERRED WALLETS CURRENTLY SAVED:", Object.keys(referredWallets));
-    console.log("WEBHOOK WALLET:", wallet);
-    console.log("AMOUNT:", amount);
-    console.log("IS REFERRED WALLET:", isReferredWallet);
-    console.log("TX:", tx);
-
-    if (wallet && amount >= MIN_WAGER_SOL && isReferredWallet) {
-      wagers.push({
-        user: wallet,
-        username: referredWallets[wallet]?.username || null,
-        amount,
-        createdAt: new Date().toISOString(),
-        tx
-      });
-
-      if (tx) {
-        processedTx.add(tx);
-        saveProcessedTx();
-      }
-
-      saveWagers();
-
-      console.log("NEW REFERRED WAGER DETECTED:", wallet, amount);
-    } else {
-      console.log("WAGER REJECTED:", {
-        wallet,
-        amount,
-        isReferredWallet,
-        minimumRequired: MIN_WAGER_SOL
-      });
-    }
-  });
-
+  sortLeaderboard();
+  saveLeaderboard();
   io.emit("update");
-  res.sendStatus(200);
+
+  res.json({ success: true });
 });
 
-/*
-  Weekly reset
-  Sunday 12:05 AM
-*/
-cron.schedule("5 0 * * 0", () => {
-  console.log("Running weekly leaderboard reset");
+app.post("/admin/set-player", (req, res) => {
+  if (!requireAdminKey(req, res)) return;
 
-  const winners = getLeaderboardTotals().slice(0, 3);
+  const { wallet, username, amount } = req.body;
+
+  if (!wallet) {
+    return res.status(400).json({ error: "wallet is required" });
+  }
+
+  const existing = leaderboard.find((p) => p.user === wallet);
+
+  if (!existing) {
+    return res.status(404).json({ error: "Player not found" });
+  }
+
+  if (username !== undefined) {
+    existing.username = username;
+  }
+
+  if (amount !== undefined) {
+    if (Number.isNaN(Number(amount))) {
+      return res.status(400).json({ error: "amount must be a valid number" });
+    }
+    existing.amount = Number(amount || 0);
+  }
+
+  sortLeaderboard();
+  saveLeaderboard();
+  io.emit("update");
+
+  res.json({ success: true });
+});
+
+app.post("/admin/delete-player", (req, res) => {
+  if (!requireAdminKey(req, res)) return;
+
+  const { wallet } = req.body;
+
+  if (!wallet) {
+    return res.status(400).json({ error: "wallet is required" });
+  }
+
+  leaderboard = leaderboard.filter((p) => p.user !== wallet);
+
+  saveLeaderboard();
+  io.emit("update");
+
+  res.json({ success: true });
+});
+
+app.post("/admin/reset-week", (req, res) => {
+  if (!requireAdminKey(req, res)) return;
+
+  sortLeaderboard();
+
+  const winners = leaderboard.slice(0, 3);
 
   history.push({
     date: new Date().toISOString(),
@@ -298,14 +170,24 @@ cron.schedule("5 0 * * 0", () => {
 
   saveHistory();
 
-  wagers = [];
-  saveWagers();
-
-  processedTx.clear();
-  saveProcessedTx();
-
+  leaderboard = [];
+  saveLeaderboard();
   io.emit("update");
+
+  res.json({ success: true, message: "Week reset complete" });
 });
+
+app.post("/admin/clear-all", (req, res) => {
+  if (!requireAdminKey(req, res)) return;
+
+  leaderboard = [];
+  saveLeaderboard();
+  io.emit("update");
+
+  res.json({ success: true });
+});
+
+/* START SERVER */
 
 io.on("connection", () => {
   console.log("User connected");
